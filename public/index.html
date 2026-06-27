@@ -210,23 +210,70 @@ let actx=null,anlz=null,fd2=new Uint8Array(128),sb=0,sm=0,stt=0,bv=0,eh=[],lbt=0
 let curSrc='all',audio=null,st2=null,curSong=null,isPlay=false;
 
 // ============ 3D面板 ============
-const sg=new THREE.Group();sg.visible=false;sg.position.set(7,0,-4);sg.rotation.y=-0.35;sc.add(sg);
-const rg=new THREE.Group();rg.visible=false;rg.position.set(-7,0,-4);rg.rotation.y=0.35;sc.add(rg);
+const sg=new THREE.Group();sg.visible=false;sg.position.set(7,0,0.5);sg.rotation.y=-0.35;sc.add(sg);
+const rg=new THREE.Group();rg.visible=false;rg.position.set(-7,0,0.5);rg.rotation.y=0.35;sc.add(rg);
 let hc=[],rc=[],ph=[],sr=[],so=false,ro=false,hcd=null,hrs=null;
 function ul(){const s=Math.min(innerWidth/1400,innerHeight/900,1.15);sg.scale.setScalar(s);rg.scale.setScalar(s);sg.position.x=4.5+s*2;rg.position.x=-4.5-s*2}ul();
-function mkCard(w,h,c){const g=new THREE.Group(),geo=new THREE.PlaneGeometry(w,h);g.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.14,side:THREE.DoubleSide})));g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.4})));return g}
-function mkBtn(w,h,c,t,s){const g=mkCard(w,h,c),cv=document.createElement('canvas');cv.width=512;cv.height=100;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.font='bold 22px sans-serif';cx.textAlign='left';cx.fillText(t,20,38);cx.fillStyle='rgba(255,255,255,0.4)';cx.font='14px sans-serif';cx.fillText(s||'',20,66);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));sp.scale.set(w*0.92,0.9,1);sp.position.set(0,0,0.02);g.add(sp);return g}
-function mkSong(s,c){const g=mkCard(5,1,c),cv=document.createElement('canvas');cv.width=512;cv.height=80;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.font='bold 17px sans-serif';cx.textAlign='left';cx.fillText((s.name||'').slice(0,20),16,30);cx.fillStyle='rgba(255,255,255,0.4)';cx.font='12px sans-serif';cx.fillText((s.singer||'').slice(0,25),16,52);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));sp.scale.set(4.6,0.72,1);sp.position.set(0,0,0.02);g.add(sp);return g}
-function mkLbl(t){const cv=document.createElement('canvas');cv.width=512;cv.height=50;const cx=cv.getContext('2d');cx.fillStyle='rgba(255,255,255,0.5)';cx.font='bold 14px sans-serif';cx.textAlign='left';cx.fillText(t,8,30);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.8,depthTest:false}));sp.scale.set(5,0.45,1);return sp}
-function rsb(){while(sg.children.length)sg.remove(sg.children[0]);hc=[];const W=5.2,H=1.0,G=0.25,LH=0.6;let y=5.5;const a=(l,b)=>{const L=mkLbl(l);L.position.set(0,y,0.03);sg.add(L);y-=LH;const c=mkBtn(W,H,b.c,b.t,b.sub);c.position.y=y;c.userData={action:b.a,baseY:y,targetY:y,tOpacity:0.14};sg.add(c);hc.push(c);y-=H+G};a('🔍 搜索',{c:0x7fd8ff,t:'搜索歌曲',sub:'输入关键词搜索',a:'search'});a('🕐 最近播放',{c:0x9cffdf,t:(ph[0]||{}).name||'暂无记录',sub:(ph[0]||{}).singer||'播放后显示',a:'history'});a('📁 我的歌单',{c:0xf4d28a,t:'点击加载',sub:'推荐歌单',a:'playlist'});a('✨ 在线推荐',{c:0xff5367,t:'点击加载',sub:'每日推荐',a:'recommend'});a('🏆 排行榜',{c:0x7fd8ff,t:'点击加载',sub:'热歌榜',a:'leaderboard'});ul()}rsb();
+function mkCard(w,h,c){
+  const g=new THREE.Group();
+  const geo=new THREE.PlaneGeometry(w,h);
+  // dark backing — depth layer
+  g.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x080c14,transparent:true,opacity:0.55,side:THREE.DoubleSide})));
+  // glass fill — colored semi-transparent
+  g.add(new THREE.Mesh(new THREE.PlaneGeometry(w*0.96,h*0.92),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.12,side:THREE.DoubleSide})));
+  // bright edge frame
+  g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.65})));
+  // top highlight — simulates glass light reflection
+  const th=new THREE.Mesh(new THREE.PlaneGeometry(w*0.88,0.01),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.5,side:THREE.DoubleSide}));
+  th.position.y=h*0.46;g.add(th);
+  return g;
+}
+function mkBtn(w,h,c,t,sub){
+  const g=mkCard(w,h,c);
+  const cv=document.createElement('canvas');cv.width=512;cv.height=120;
+  const cx=cv.getContext('2d');
+  cx.fillStyle='#ffffff';cx.font='700 22px "Noto Sans SC","PingFang SC",sans-serif';cx.textAlign='left';
+  cx.fillText(t,24,42);
+  cx.fillStyle='rgba(255,255,255,0.45)';cx.font='400 13px sans-serif';
+  cx.fillText(sub||'',24,70);
+  // small arrow indicator
+  cx.fillStyle='rgba(255,255,255,0.25)';cx.font='16px sans-serif';cx.textAlign='right';
+  cx.fillText('→',488,42);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.92,depthTest:false}));
+  sp.scale.set(w*0.94,0.9,1);sp.position.set(0,0,0.03);g.add(sp);
+  return g;
+}
+function mkSong(s,c){
+  const g=mkCard(5,1,c);
+  const cv=document.createElement('canvas');cv.width=512;cv.height=80;
+  const cx=cv.getContext('2d');
+  cx.fillStyle='#fff';cx.font='700 16px "Noto Sans SC","PingFang SC",sans-serif';cx.textAlign='left';
+  cx.fillText((s.name||'').slice(0,22),18,32);
+  cx.fillStyle='rgba(255,255,255,0.38)';cx.font='400 12px sans-serif';
+  cx.fillText((s.singer||'').slice(0,28),18,54);
+  cx.fillStyle='rgba(255,255,255,0.18)';cx.font='11px sans-serif';cx.textAlign='right';
+  cx.fillText('播放 →',496,34);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));
+  sp.scale.set(4.6,0.72,1);sp.position.set(0,0,0.03);g.add(sp);
+  return g;
+}
+function mkLbl(t){
+  const cv=document.createElement('canvas');cv.width=512;cv.height=44;
+  const cx=cv.getContext('2d');
+  cx.fillStyle='rgba(255,255,255,0.55)';cx.font='600 13px "Noto Sans SC","PingFang SC",sans-serif';cx.textAlign='left';
+  cx.fillText(t,6,28);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.85,depthTest:false}));
+  sp.scale.set(5,0.4,1);return sp;
+}
+function rsb(){while(sg.children.length)sg.remove(sg.children[0]);hc=[];const W=5.2,H=1.0,G=0.25,LH=0.6;let y=5.5;const a=(l,b)=>{const L=mkLbl(l);L.position.set(0,y,0.03);sg.add(L);y-=LH;const c=mkBtn(W,H,b.c,b.t,b.sub);c.position.y=y;c.userData={action:b.a,baseY:y,targetY:y,tScale:1,tOpacity:0.25};sg.add(c);hc.push(c);y-=H+G};a('🔍 搜索',{c:0x7fd8ff,t:'搜索歌曲',sub:'输入关键词搜索',a:'search'});a('🕐 最近播放',{c:0x9cffdf,t:(ph[0]||{}).name||'暂无记录',sub:(ph[0]||{}).singer||'播放后显示',a:'history'});a('📁 我的歌单',{c:0xf4d28a,t:'点击加载',sub:'推荐歌单',a:'playlist'});a('✨ 在线推荐',{c:0xff5367,t:'点击加载',sub:'每日推荐',a:'recommend'});a('🏆 排行榜',{c:0x7fd8ff,t:'点击加载',sub:'热歌榜',a:'leaderboard'});ul()}rsb();
 function ssh(){so=true;sg.visible=true}function hsh(){so=false}
-function rrb(){while(rg.children.length)rg.remove(rg.children[0]);rc=[];if(!sr.length)return;let y=4;sr.slice(0,10).forEach(s=>{const c=mkSong(s,0x7fd8ff);c.position.y=y;c.userData={song:s,baseY:y,targetY:y,tOpacity:0.14};rg.add(c);rc.push(c);y-=1.1});rg.scale.setScalar(sg.scale.x)}
+function rrb(){while(rg.children.length)rg.remove(rg.children[0]);rc=[];if(!sr.length)return;let y=4;sr.slice(0,10).forEach(s=>{const c=mkSong(s,0x7fd8ff);c.position.y=y;c.userData={song:s,baseY:y,targetY:y,tOpacity:0.25};rg.add(c);rc.push(c);y-=1.1});rg.scale.setScalar(sg.scale.x)}
 function srs(){ro=true;rg.visible=true;rg.position.x=-9}function hrs2(){ro=false}
 function uh(e,cs,g){if(!g.visible)return null;const m=(1-e.clientY/innerHeight)*10-5;let b=null,bd=Infinity;cs.forEach(c=>{const wy=c.position.y*g.scale.y+g.position.y,d=Math.abs(m-wy);if(d<1&&d<bd){bd=d;b=c}});return b}
 
 // ============ 交互 ============
 let mx=0,my=0,cmx=0,cmy=0,zm=15;
-document.addEventListener('mousemove',e=>{mx=-(e.clientY/innerHeight*2-1)*0.3;my=(e.clientX/innerWidth*2-1)*0.3;const hc=uh(e,hc,sg);if(hc!==hcd){if(hcd){hcd.userData.targetY=hcd.userData.baseY;hcd.userData.tOpacity=0.14}hcd=hc;if(hc){hc.userData.targetY=hc.userData.baseY+0.15;hc.userData.tOpacity=0.4}}const hr=uh(e,rc,rg);if(hr!==hrs){if(hrs){hrs.userData.targetY=hrs.userData.baseY;hrs.userData.tOpacity=0.14}hrs=hr;if(hr){hr.userData.targetY=hr.userData.baseY+0.15;hr.userData.tOpacity=0.4}}});
+document.addEventListener('mousemove',e=>{mx=-(e.clientY/innerHeight*2-1)*0.3;my=(e.clientX/innerWidth*2-1)*0.3;const hc=uh(e,hc,sg);if(hc!==hcd){if(hcd){hcd.userData.targetY=hcd.userData.baseY;hcd.userData.tScale=1;hcd.userData.tOpacity=0.25}hcd=hc;if(hc){hc.userData.targetY=hc.userData.baseY+0.2;hc.userData.tScale=1.04;hc.userData.tOpacity=0.5}}const hr=uh(e,rc,rg);if(hr!==hrs){if(hrs){hrs.userData.targetY=hrs.userData.baseY;hrs.userData.tScale=1;hrs.userData.tOpacity=0.25}hrs=hr;if(hr){hr.userData.targetY=hr.userData.baseY+0.2;hr.userData.tScale=1.04;hr.userData.tOpacity=0.5}}});
 document.addEventListener('wheel',e=>{zm=Math.max(8,Math.min(25,zm+e.deltaY*0.01))},{passive:true});
 document.addEventListener('contextmenu',e=>{e.preventDefault();so?hsh():ssh()});
 document.addEventListener('click',async e=>{const t=e.target;if(t.closest('#search-wrap')||t.closest('#settings-btn')||t.closest('#settings-panel')||t.closest('#player'))return;if(ro&&hrs?.userData.song){const s=hrs.userData.song;window._last=sr;const i=sr.indexOf(s);if(i>=0)playSong(i);hrs2();return}if(!hcd){ro&&hrs2();so&&hsh();return}const a=hcd.userData.action;if(a==='search')document.getElementById('search-input').focus();else if(a==='leaderboard'||a==='recommend'||a==='playlist'){try{const r=await fetch(a==='leaderboard'?'/api/leaderboard':'/api/recommend');const d=await r.json();sr=a==='leaderboard'?d.list:(d.list||[]).map(p=>({name:p.name,singer:p.desc||p.count+'首',source:'wy',id:p.id}));window._last=sr;rrb();srs()}catch(_){}}});
@@ -241,8 +288,8 @@ function anim(){
   U.uT.value+=dt*0.4;U.uD.value=1.2*idle;
   const f=1-Math.exp(-6*dt);cmx+=(mx-cmx)*f;cmy+=(my-cmy)*f;
   P.mp.rotation.x=cmx;P.mp.rotation.y=cmy+U.uT.value*0.03;P.gp.rotation.x=cmx;P.gp.rotation.y=cmy+U.uT.value*0.03;
-  if(sg.visible){const tx=so?sg.scale.x*2+4.5:sg.scale.x*2+8;sg.position.x+=(tx-sg.position.x)*0.06;hc.forEach(c=>{c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!so&&sg.position.x>sg.scale.x*2+7.5)sg.visible=false}
-  if(rg.visible){const tx=ro?-rg.scale.x*2-4.5:-rg.scale.x*2-8;rg.position.x+=(tx-rg.position.x)*0.06;rc.forEach(c=>{c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!ro&&rg.position.x<-rg.scale.x*2-7.5)rg.visible=false}
+  if(sg.visible){const tx=so?sg.scale.x*2+4.5:sg.scale.x*2+8;sg.position.x+=(tx-sg.position.x)*0.06;hc.forEach(c=>{const s=(c.userData.tScale||1)-c.scale.x;c.scale.x+=s*0.1;c.scale.y+=s*0.1;c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!so&&sg.position.x>sg.scale.x*2+7.5)sg.visible=false}
+  if(rg.visible){const tx=ro?-rg.scale.x*2-4.5:-rg.scale.x*2-8;rg.position.x+=(tx-rg.position.x)*0.06;rc.forEach(c=>{const s=(c.userData.tScale||1)-c.scale.x;c.scale.x+=s*0.1;c.scale.y+=s*0.1;c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!ro&&rg.position.x<-rg.scale.x*2-7.5)rg.visible=false}
   cam.position.z+=(zm-cam.position.z)*0.05;rdr.render(sc,cam);
 }
 anim();
