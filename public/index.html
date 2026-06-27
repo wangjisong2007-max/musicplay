@@ -9,10 +9,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:var(--text);font-family:"Noto Sans SC","PingFang SC",-apple-system,sans-serif;user-select:none}
 #bg-canvas{position:fixed;inset:0;z-index:0}
-/* glass */
 #glass-svg{position:absolute;width:0;height:0}
 .glass{background:rgba(6,8,12,.55);backdrop-filter:url(#glass-filter) saturate(1);-webkit-backdrop-filter:url(#glass-filter) saturate(1);border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 0 2px 1px rgba(255,255,255,.35),inset 0 0 10px 4px rgba(255,255,255,.08),0 4px 16px rgba(0,0,0,.15),0 8px 24px rgba(0,0,0,.15)}
-/* header */
 #header{position:fixed;top:0;left:0;right:0;z-index:10;padding:12px 20px;display:flex;align-items:flex-start;gap:12px}
 #logo{font-size:16px;font-weight:700;letter-spacing:.08em;color:var(--accent);flex-shrink:0;line-height:40px}
 #search-wrap{flex:1;max-width:480px}
@@ -29,7 +27,6 @@ html,body{height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:va
 .setting-btn{flex:1;padding:6px 0;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text);font-size:12px;cursor:pointer}
 .setting-btn:hover{background:rgba(255,255,255,.08)}
 .setting-btn.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
-/* player */
 #player{position:fixed;bottom:12px;left:12px;right:12px;z-index:10;padding:14px 20px;display:flex;align-items:center;gap:16px;border-radius:18px}
 #player-info{flex:1;min-width:0}
 #player-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -41,10 +38,17 @@ html,body{height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:va
 #progress-wrap{width:120px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;cursor:pointer;flex-shrink:0}
 #progress-bar{height:100%;background:var(--accent);border-radius:2px;width:0%}
 #time-label{font-size:10px;color:var(--muted);flex-shrink:0;width:35px;text-align:center}
-/* toast */
 #toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:100;background:rgba(6,8,12,.85);padding:10px 24px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .3s}
 #toast.on{opacity:1}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+#fx-fab{position:fixed;bottom:120px;right:20px;z-index:20;width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;padding:0;transition:transform .2s}
+#fx-fab:hover{transform:scale(1.08)}
+#fx-panel{position:fixed;bottom:155px;right:16px;z-index:50;width:220px;padding:14px;border-radius:16px;display:none;flex-direction:column;gap:8px;font-size:12px}
+#fx-panel.show{display:flex}
+.fx-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fx-row span{color:var(--muted);flex-shrink:0}
+.fx-row select,.fx-row input[type=range]{flex:1;background:rgba(255,255,255,.06);color:var(--text);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 6px;font-size:11px;outline:0}
+.fx-row input[type=range]{height:4px;-webkit-appearance:none;appearance:none;padding:0}
+.fx-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
 </style>
 </head>
 <body>
@@ -68,22 +72,14 @@ html,body{height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:va
 
 <div id="header">
   <div id="logo">MusicPlay</div>
-  <div id="search-wrap">
-    <div id="search-box" class="glass">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input id="search-input" type="text" placeholder="搜索歌曲..." autocomplete="off">
-    </div>
-  </div>
+  <div id="search-wrap"><div id="search-box" class="glass"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input id="search-input" type="text" placeholder="搜索歌曲..." autocomplete="off"></div></div>
   <button id="settings-btn" class="glass" onclick="toggleSettings()" title="设置">⚙</button>
 </div>
 
 <div id="settings-panel" class="glass">
   <div class="setting-label">导入音源脚本</div>
   <textarea id="custom-source-input" class="setting-textarea" placeholder="粘贴 LX Music 音源脚本 (JS)..."></textarea>
-  <div style="display:flex;gap:8px">
-    <button class="setting-btn" onclick="importSourceFile()">📁 导入文件</button>
-    <button class="setting-btn primary" onclick="applyCustomSource()">✓ 应用</button>
-  </div>
+  <div style="display:flex;gap:8px"><button class="setting-btn" onclick="importSourceFile()">📁 导入文件</button><button class="setting-btn primary" onclick="applyCustomSource()">✓ 应用</button></div>
   <input type="file" id="source-file-input" accept=".js" style="display:none" onchange="onFilePicked(event)">
   <button class="setting-btn" onclick="resetToBuiltin()">↺ 恢复内置</button>
   <div id="custom-source-status" style="font-size:11px;color:var(--muted);display:none"></div>
@@ -97,164 +93,188 @@ html,body{height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:va
 </div>
 <div id="toast"></div>
 
+<button id="fx-fab" class="glass" onclick="toggleFx()" title="视觉控制台">🎨</button>
+<div id="fx-panel" class="glass">
+  <div class="setting-label">视觉控制台</div>
+  <div class="fx-row"><span>调色板</span><select id="fx-palette" onchange="onFxChange()"><option value="0">极光</option><option value="1">暖金</option><option value="2">深空</option><option value="3">霓虹</option></select></div>
+  <div class="fx-row"><span>噪声缩放</span><input type="range" id="fx-noise" min="0.05" max="0.5" step="0.01" value="0.2" oninput="onFxChange()"></div>
+  <div class="fx-row"><span>粒子大小</span><input type="range" id="fx-psize" min="30" max="200" step="5" value="100" oninput="onFxChange()"></div>
+  <button class="setting-btn" onclick="resetFx()">↺ 重置</button>
+</div>
+
 <script type="module">
 import * as THREE from 'three';
-// ==================== 粒子视觉 ====================
-const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,100);
-camera.position.z=14;
-const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true,antialias:true});
-renderer.setSize(window.innerWidth,window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 
-// 音频
-let actx=null,anlz=null,fd=new Uint8Array(128);
+// ============ 着色器 ============
+const PN=`vec4 permute(vec4 x){return mod(((x*34.0)+10.0)*x,289.0);}
+float pnoise(vec2 P,vec2 rep){
+  vec4 Pi=floor(P.xyxy)+vec4(0,0,1,1),Pf=fract(P.xyxy)-vec4(0,0,1,1);
+  Pi=mod(Pi,rep.xyxy);Pi=mod(Pi,289.0);vec4 ix=Pi.xzxz,iy=Pi.yyww,fx=Pf.xzxz,fy=Pf.yyww;
+  vec4 i=permute(permute(ix)+iy),gx=2.0*fract(i*0.0243902439)-1.0,gy=abs(gx)-0.5,tx=floor(gx+0.5);gx-=tx;
+  vec2 g00=vec2(gx.x,gy.x),g10=vec2(gx.y,gy.y),g01=vec2(gx.z,gy.z),g11=vec2(gx.w,gy.w);
+  vec4 norm=1.79284291400159-0.85373472095314*vec4(dot(g00,g00),dot(g01,g01),dot(g10,g10),dot(g11,g11));
+  g00*=norm.x;g01*=norm.y;g10*=norm.z;g11*=norm.w;
+  float n00=dot(g00,vec2(fx.x,fy.x)),n10=dot(g10,vec2(fx.y,fy.y)),n01=dot(g01,vec2(fx.z,fy.z)),n11=dot(g11,vec2(fx.w,fy.w));
+  vec2 fxy=Pf.xy*Pf.xy*Pf.xy*(Pf.xy*(Pf.xy*6.0-15.0)+10.0),nx=mix(vec2(n00,n01),vec2(n10,n11),fxy.x);
+  return 2.3*mix(nx.x,nx.y,fxy.y);
+}`;
+const PC=`vec3 pal(float t,vec3 a,vec3 b,vec3 c,vec3 d){return a+b*cos(6.28318530718*(c*t+d));}
+vec3 gc(float p,float i){
+  if(i>0.5&&i<1.5)return pal(p,vec3(0.8,0.7,0.6),vec3(0.2,0.2,0.2),vec3(1,1,1),vec3(0,0.1,0.2));
+  if(i>1.5&&i<2.5)return pal(p,vec3(0.15,0.25,0.45),vec3(0.15,0.15,0.2),vec3(1,1,1),vec3(0,0.1,0.2));
+  if(i>2.5)return pal(p,vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1,1,1),vec3(0,0.25,0.5));
+  return pal(p,vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1,1,1),vec3(0,0.33,0.67));
+}`;
+
+const VS=`precision highp float;
+uniform float uT,uPI,uNS,uD,uPS;attribute float aR;varying vec3 vC;varying float vA;
+#define PI 3.14159265359
+${PN}${PC}
+void main(){
+  float t=atan(position.z,position.x),p=asin(normalize(position).y);
+  vec2 uv=vec2((t/PI)*6.0,(p/(PI/2.0))*6.0);
+  float n=pnoise(uv*uNS+vec2(uT*0.15,uT*0.1),vec2(12.0));
+  vec3 np=position+normal*n*uD;
+  vec4 mv=modelViewMatrix*vec4(np,1.0);
+  gl_Position=projectionMatrix*mv;
+  gl_PointSize=uPS/(-mv.z);
+  vC=gc(fract((position.y/4.0)*0.5+0.5+n*0.25),uPI);
+  vA=0.4+abs(n)*0.6;
+}`;
+
+const FS=`precision highp float;
+varying vec3 vC;varying float vA;
+void main(){
+  float d=length(gl_PointCoord-vec2(0.5));if(d>0.5)discard;
+  float e=smoothstep(0.5,0.35,d),r=smoothstep(0.5,0.0,d);
+  gl_FragColor=vec4(vC*(0.5+r*0.5),vA*e);
+}`;
+
+const VG=`precision highp float;
+uniform float uT,uPI,uNS,uD,uPS;attribute float aR;varying vec3 vC;varying float vA;
+#define PI 3.14159265359
+${PN}${PC}
+void main(){
+  float t=atan(position.z,position.x),p=asin(normalize(position).y);
+  vec2 uv=vec2((t/PI)*6.0,(p/(PI/2.0))*6.0);
+  float n=pnoise(uv*uNS+vec2(uT*0.15,uT*0.1),vec2(12.0));
+  vec3 np=position+normal*(n*uD*1.2+0.1);
+  vec4 mv=modelViewMatrix*vec4(np,1.0);
+  gl_Position=projectionMatrix*mv;
+  gl_PointSize=uPS*1.5/(-mv.z);
+  vC=gc(fract((position.y/4.0)*0.5+0.5+n*0.25),uPI);
+  vA=0.15+abs(n)*0.25;
+}`;
+
+const FG=`precision highp float;
+varying vec3 vC;varying float vA;
+void main(){
+  float d=length(gl_PointCoord-vec2(0.5));if(d>0.5)discard;
+  gl_FragColor=vec4(vC*1.5,vA*exp(-d*4.0));
+}`;
+
+// ============ 几何体 ============
+function bgeo(N,R){
+  const a=new Float32Array(N*3),b=new Float32Array(N*3),c=new Float32Array(N);
+  for(let i=0;i<N;i++){
+    const t=Math.acos(1-2*(i+0.5)/N),p=Math.sqrt(N*Math.PI)*t,s=Math.sin(t);
+    const x=s*Math.cos(p),y=s*Math.sin(p),z=Math.cos(t);
+    a[i*3]=x*R;a[i*3+1]=y*R;a[i*3+2]=z*R;b[i*3]=x;b[i*3+1]=y;b[i*3+2]=z;c[i]=Math.random();
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(a,3));
+  g.setAttribute('normal',new THREE.BufferAttribute(b,3));
+  g.setAttribute('aR',new THREE.BufferAttribute(c,1));
+  return g;
+}
+
+function cps(sc){
+  const g=bgeo(10000,4);
+  const u={uT:{value:0},uPI:{value:0},uNS:{value:0.2},uD:{value:1.2},uPS:{value:100}};
+  const mm=new THREE.ShaderMaterial({uniforms:u,vertexShader:VS,fragmentShader:FS,transparent:true,depthWrite:false,blending:THREE.NormalBlending});
+  const mp=new THREE.Points(g,mm);mp.frustumCulled=false;mp.renderOrder=1;sc.add(mp);
+  const gm=new THREE.ShaderMaterial({uniforms:u,vertexShader:VG,fragmentShader:FG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+  const gp=new THREE.Points(g,gm);gp.frustumCulled=false;gp.renderOrder=0;sc.add(gp);
+  return{u,mp,gp,g,sp(i){u.uPI.value=Math.min(3,Math.max(0,i))},dis(){g.dispose();mm.dispose();gm.dispose()}};
+}
+
+// ============ 场景 ============
+const sc=new THREE.Scene();sc.background=new THREE.Color(0x020205);
+const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,100);cam.position.z=15;
+const rdr=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),antialias:false,powerPreference:'high-performance',alpha:false});
+rdr.setPixelRatio(Math.min(devicePixelRatio,2));rdr.setSize(innerWidth,innerHeight);
+const P=cps(sc);const U=P.u;
+
+// ============ 音频状态（动画循环前声明，避免TDZ） ============
+let actx=null,anlz=null,fd2=new Uint8Array(128),sb=0,sm=0,stt=0,bv=0,eh=[],lbt=0,idle=1.0;
+let curSrc='all',audio=null,st2=null,curSong=null,isPlay=false;
+
+// ============ 3D面板 ============
+const sg=new THREE.Group();sg.visible=false;sg.position.set(7,0,-4);sg.rotation.y=-0.35;sc.add(sg);
+const rg=new THREE.Group();rg.visible=false;rg.position.set(-7,0,-4);rg.rotation.y=0.35;sc.add(rg);
+let hc=[],rc=[],ph=[],sr=[],so=false,ro=false,hcd=null,hrs=null;
+function ul(){const s=Math.min(innerWidth/1400,innerHeight/900,1.15);sg.scale.setScalar(s);rg.scale.setScalar(s);sg.position.x=4.5+s*2;rg.position.x=-4.5-s*2}ul();
+function mkCard(w,h,c){const g=new THREE.Group(),geo=new THREE.PlaneGeometry(w,h);g.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.14,side:THREE.DoubleSide})));g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.4})));return g}
+function mkBtn(w,h,c,t,s){const g=mkCard(w,h,c),cv=document.createElement('canvas');cv.width=512;cv.height=100;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.font='bold 22px sans-serif';cx.textAlign='left';cx.fillText(t,20,38);cx.fillStyle='rgba(255,255,255,0.4)';cx.font='14px sans-serif';cx.fillText(s||'',20,66);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));sp.scale.set(w*0.92,0.9,1);sp.position.set(0,0,0.02);g.add(sp);return g}
+function mkSong(s,c){const g=mkCard(5,1,c),cv=document.createElement('canvas');cv.width=512;cv.height=80;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.font='bold 17px sans-serif';cx.textAlign='left';cx.fillText((s.name||'').slice(0,20),16,30);cx.fillStyle='rgba(255,255,255,0.4)';cx.font='12px sans-serif';cx.fillText((s.singer||'').slice(0,25),16,52);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));sp.scale.set(4.6,0.72,1);sp.position.set(0,0,0.02);g.add(sp);return g}
+function mkLbl(t){const cv=document.createElement('canvas');cv.width=512;cv.height=50;const cx=cv.getContext('2d');cx.fillStyle='rgba(255,255,255,0.5)';cx.font='bold 14px sans-serif';cx.textAlign='left';cx.fillText(t,8,30);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.8,depthTest:false}));sp.scale.set(5,0.45,1);return sp}
+function rsb(){while(sg.children.length)sg.remove(sg.children[0]);hc=[];const W=5.2,H=1.0,G=0.25,LH=0.6;let y=5.5;const a=(l,b)=>{const L=mkLbl(l);L.position.set(0,y,0.03);sg.add(L);y-=LH;const c=mkBtn(W,H,b.c,b.t,b.sub);c.position.y=y;c.userData={action:b.a,baseY:y,targetY:y,tOpacity:0.14};sg.add(c);hc.push(c);y-=H+G};a('🔍 搜索',{c:0x7fd8ff,t:'搜索歌曲',sub:'输入关键词搜索',a:'search'});a('🕐 最近播放',{c:0x9cffdf,t:(ph[0]||{}).name||'暂无记录',sub:(ph[0]||{}).singer||'播放后显示',a:'history'});a('📁 我的歌单',{c:0xf4d28a,t:'点击加载',sub:'推荐歌单',a:'playlist'});a('✨ 在线推荐',{c:0xff5367,t:'点击加载',sub:'每日推荐',a:'recommend'});a('🏆 排行榜',{c:0x7fd8ff,t:'点击加载',sub:'热歌榜',a:'leaderboard'});ul()}rsb();
+function ssh(){so=true;sg.visible=true}function hsh(){so=false}
+function rrb(){while(rg.children.length)rg.remove(rg.children[0]);rc=[];if(!sr.length)return;let y=4;sr.slice(0,10).forEach(s=>{const c=mkSong(s,0x7fd8ff);c.position.y=y;c.userData={song:s,baseY:y,targetY:y,tOpacity:0.14};rg.add(c);rc.push(c);y-=1.1});rg.scale.setScalar(sg.scale.x)}
+function srs(){ro=true;rg.visible=true;rg.position.x=-9}function hrs2(){ro=false}
+function uh(e,cs,g){if(!g.visible)return null;const m=(1-e.clientY/innerHeight)*10-5;let b=null,bd=Infinity;cs.forEach(c=>{const wy=c.position.y*g.scale.y+g.position.y,d=Math.abs(m-wy);if(d<1&&d<bd){bd=d;b=c}});return b}
+
+// ============ 交互 ============
+let mx=0,my=0,cmx=0,cmy=0,zm=15;
+document.addEventListener('mousemove',e=>{mx=-(e.clientY/innerHeight*2-1)*0.3;my=(e.clientX/innerWidth*2-1)*0.3;const hc=uh(e,hc,sg);if(hc!==hcd){if(hcd){hcd.userData.targetY=hcd.userData.baseY;hcd.userData.tOpacity=0.14}hcd=hc;if(hc){hc.userData.targetY=hc.userData.baseY+0.15;hc.userData.tOpacity=0.4}}const hr=uh(e,rc,rg);if(hr!==hrs){if(hrs){hrs.userData.targetY=hrs.userData.baseY;hrs.userData.tOpacity=0.14}hrs=hr;if(hr){hr.userData.targetY=hr.userData.baseY+0.15;hr.userData.tOpacity=0.4}}});
+document.addEventListener('wheel',e=>{zm=Math.max(8,Math.min(25,zm+e.deltaY*0.01))},{passive:true});
+document.addEventListener('contextmenu',e=>{e.preventDefault();so?hsh():ssh()});
+document.addEventListener('click',async e=>{const t=e.target;if(t.closest('#search-wrap')||t.closest('#settings-btn')||t.closest('#settings-panel')||t.closest('#player'))return;if(ro&&hrs?.userData.song){const s=hrs.userData.song;window._last=sr;const i=sr.indexOf(s);if(i>=0)playSong(i);hrs2();return}if(!hcd){ro&&hrs2();so&&hsh();return}const a=hcd.userData.action;if(a==='search')document.getElementById('search-input').focus();else if(a==='leaderboard'||a==='recommend'||a==='playlist'){try{const r=await fetch(a==='leaderboard'?'/api/leaderboard':'/api/recommend');const d=await r.json();sr=a==='leaderboard'?d.list:(d.list||[]).map(p=>({name:p.name,singer:p.desc||p.count+'首',source:'wy',id:p.id}));window._last=sr;rrb();srs()}catch(_){}}});
+
+// ============ 动画循环 ============
 function initAudio(){if(actx)return;actx=new(window.AudioContext||window.webkitAudioContext)();anlz=actx.createAnalyser();anlz.fftSize=256;anlz.connect(actx.destination)}
-
-// 粒子纹理
-function mkTex(){const c=document.createElement('canvas');c.width=64;c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.06,'rgba(255,255,255,0.98)');g.addColorStop(0.2,'rgba(255,255,255,0.7)');g.addColorStop(0.45,'rgba(200,220,255,0.2)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
-const ptex=mkTex();
-
-// 自定义着色器：支持逐粒子大小 + 音频脉冲 + 辉光
-const pVS=`attribute float size;attribute vec3 color;varying vec3 vCol;varying float vAlpha,vBright;uniform float uAudioLow,uAudioHigh,uPointScale;
-void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);float s=size*uPointScale*(280.0/-mv.z);gl_PointSize=clamp(s,0.5,60.0);gl_Position=projectionMatrix*mv;vCol=color;vAlpha=0.55+uAudioLow*0.45;vBright=0.3+uAudioHigh*0.5;}`;
-
-const pFS=`uniform sampler2D uTex;varying vec3 vCol;varying float vAlpha,vBright;
-void main(){vec4 t=texture2D(uTex,gl_PointCoord);if(t.a<0.015)discard;float a=t.a*t.a;vec3 col=vCol*(0.65+vBright*0.5);gl_FragColor=vec4(col,a*vAlpha*0.72);}`;
-
-const bFS=`uniform sampler2D uTex;varying vec3 vCol;varying float vAlpha,vBright;
-void main(){vec4 t=texture2D(uTex,gl_PointCoord);if(t.a<0.008)discard;float a=t.a*t.a*t.a;vec3 col=vCol*(0.9+vBright*0.8);gl_FragColor=vec4(col,a*vAlpha*0.22);}`;
-
-// 主粒子 2500粒 (带逐粒大小)
-const N1=2500;const g1=new THREE.BufferGeometry();const p1=new Float32Array(N1*3),c1=new Float32Array(N1*3),sz1=new Float32Array(N1);
-for(let i=0;i<N1;i++){const r=3.5+Math.random()*17,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p1[i*3]=r*Math.sin(ph)*Math.cos(th);p1[i*3+1]=r*Math.sin(ph)*Math.sin(th);p1[i*3+2]=r*Math.cos(ph)-2;const co=new THREE.Color().setHSL(0.5+Math.random()*0.25,0.55,0.2+Math.random()*0.65);c1[i*3]=co.r;c1[i*3+1]=co.g;c1[i*3+2]=co.b;sz1[i]=0.015+Math.random()*0.09}
-g1.setAttribute('position',new THREE.BufferAttribute(p1,3));g1.setAttribute('color',new THREE.BufferAttribute(c1,3));g1.setAttribute('size',new THREE.BufferAttribute(sz1,1));
-const u1={uTex:{value:ptex},uPointScale:{value:650},uAudioLow:{value:0},uAudioHigh:{value:0}};
-const m1=new THREE.ShaderMaterial({uniforms:u1,vertexShader:pVS,fragmentShader:pFS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
-const l1=new THREE.Points(g1,m1);l1.renderOrder=1;scene.add(l1);
-
-// 辉光层 1200粒 (更大更淡)
-const N2=1200;const g2=new THREE.BufferGeometry();const p2=new Float32Array(N2*3),c2=new Float32Array(N2*3),sz2=new Float32Array(N2);
-for(let i=0;i<N2;i++){const r=5+Math.random()*14,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p2[i*3]=r*Math.sin(ph)*Math.cos(th);p2[i*3+1]=r*Math.sin(ph)*Math.sin(th);p2[i*3+2]=r*Math.cos(ph)-2;const co=new THREE.Color().setHSL(0.48+Math.random()*0.3,0.4,0.25+Math.random()*0.55);c2[i*3]=co.r;c2[i*3+1]=co.g;c2[i*3+2]=co.b;sz2[i]=0.06+Math.random()*0.16}
-g2.setAttribute('position',new THREE.BufferAttribute(p2,3));g2.setAttribute('color',new THREE.BufferAttribute(c2,3));g2.setAttribute('size',new THREE.BufferAttribute(sz2,1));
-const u2={uTex:{value:ptex},uPointScale:{value:520},uAudioLow:{value:0},uAudioHigh:{value:0}};
-const m2=new THREE.ShaderMaterial({uniforms:u2,vertexShader:pVS,fragmentShader:bFS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
-const l2=new THREE.Points(g2,m2);l2.renderOrder=0;scene.add(l2);
-
-// 漂浮微粒 350粒
-const N3=350;const g3=new THREE.BufferGeometry();const p3=new Float32Array(N3*3),c3=new Float32Array(N3*3),sz3=new Float32Array(N3);
-const fb=new Float32Array(N3*3),fph=new Float32Array(N3*3),fa=new Float32Array(N3);
-for(let i=0;i<N3;i++){fb[i*3]=(Math.random()-0.5)*18;fb[i*3+1]=(Math.random()-0.5)*12;fb[i*3+2]=(Math.random()-0.5)*6;p3[i*3]=fb[i*3];p3[i*3+1]=fb[i*3+1];p3[i*3+2]=fb[i*3+2];fph[i*3]=Math.random()*Math.PI*2;fph[i*3+1]=Math.random()*Math.PI*2;fph[i*3+2]=Math.random()*Math.PI*2;fa[i]=0.08+Math.random()*0.25;const co=new THREE.Color().setHSL(0.42+Math.random()*0.18,0.35,0.35+Math.random()*0.45);c3[i*3]=co.r;c3[i*3+1]=co.g;c3[i*3+2]=co.b;sz3[i]=0.012+Math.random()*0.045}
-g3.setAttribute('position',new THREE.BufferAttribute(p3,3));g3.setAttribute('color',new THREE.BufferAttribute(c3,3));g3.setAttribute('size',new THREE.BufferAttribute(sz3,1));
-const u3={uTex:{value:ptex},uPointScale:{value:580},uAudioLow:{value:0},uAudioHigh:{value:0}};
-const m3=new THREE.ShaderMaterial({uniforms:u3,vertexShader:pVS,fragmentShader:pFS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
-const l3=new THREE.Points(g3,m3);l3.renderOrder=2;scene.add(l3);
-
-// ==================== 3D 面板 ====================
-const shGrp=new THREE.Group();shGrp.visible=false;shGrp.position.set(7,0,-4);shGrp.rotation.y=-0.35;scene.add(shGrp);
-const rsGrp=new THREE.Group();rsGrp.visible=false;rsGrp.position.set(-7,0,-4);rsGrp.rotation.y=0.35;scene.add(rsGrp);
-const shCards=[],rsCards=[];let pHist=[],sRes=[],shOpen=false,rsOpen=false,hCard=null,hRes=null;
-
-function updLayout(){const s=Math.min(window.innerWidth/1400,window.innerHeight/900,1.15);shGrp.scale.setScalar(s);rsGrp.scale.setScalar(s);shGrp.position.x=4.5+s*2;rsGrp.position.x=-4.5-s*2}
-updLayout();
-
-function mkCard(w,h,color){const g=new THREE.Group();const geo=new THREE.PlaneGeometry(w,h);g.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.14,side:THREE.DoubleSide})));g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color,transparent:true,opacity:0.4})));const inner=new THREE.Mesh(new THREE.PlaneGeometry(w*0.94,0.04),new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.55}));inner.position.y=h*0.42;g.add(inner);return g}
-function mkBtn(w,h,color,text,sub){const g=mkCard(w,h,color);const cv=document.createElement('canvas');cv.width=512;cv.height=100;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.font='bold 22px sans-serif';cx.textAlign='left';cx.fillText(text,20,38);cx.fillStyle='rgba(255,255,255,0.4)';cx.font='14px sans-serif';cx.fillText(sub||'',20,66);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));sp.scale.set(w*0.92,0.9,1);sp.position.set(0,0,0.02);g.add(sp);return g}
-function mkSong(song,color){const g=mkCard(5,1.0,color);const cv=document.createElement('canvas');cv.width=512;cv.height=80;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.font='bold 17px sans-serif';cx.textAlign='left';cx.fillText((song.name||'').slice(0,20),16,30);cx.fillStyle='rgba(255,255,255,0.4)';cx.font='12px sans-serif';cx.fillText((song.singer||'').slice(0,25),16,52);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));sp.scale.set(4.6,0.72,1);sp.position.set(0,0,0.02);g.add(sp);return g}
-function mkLabel(text){const cv=document.createElement('canvas');cv.width=512;cv.height=50;const cx=cv.getContext('2d');cx.fillStyle='rgba(255,255,255,0.5)';cx.font='bold 14px sans-serif';cx.textAlign='left';cx.fillText(text,8,30);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.8,depthTest:false}));sp.scale.set(5,0.45,1);return sp}
-
-function rebuildShelf(){while(shGrp.children.length)shGrp.remove(shGrp.children[0]);shCards.length=0;const CW=5.2,CH=1.0,G=0.25,LH=0.6;let y=5.5;
-const add=(lbl,btn)=>{const s=shGrp.children.length;const L=mkLabel(lbl);L.position.set(0,y,0.03);shGrp.add(L);y-=LH;const b=mkBtn(CW,CH,btn.c,btn.t,btn.sub);b.position.y=y;b.userData={action:btn.a,baseY:y,targetY:y,tOpacity:0.14};shGrp.add(b);shCards.push(b);y-=CH+G};
-add('🔍 搜索',{c:0x7fd8ff,t:'搜索歌曲',sub:'输入关键词搜索',a:'search'});
-add('🕐 最近播放',{c:0x9cffdf,t:(pHist[0]||{}).name||'暂无记录',sub:(pHist[0]||{}).singer||'播放后显示',a:'history'});
-add('📁 我的歌单',{c:0xf4d28a,t:'点击加载',sub:'推荐歌单',a:'playlist'});
-add('✨ 在线推荐',{c:0xff5367,t:'点击加载',sub:'每日推荐',a:'recommend'});
-add('🏆 排行榜',{c:0x7fd8ff,t:'点击加载',sub:'热歌榜',a:'leaderboard'});
-updLayout()}
-rebuildShelf();
-
-function showSh(){shOpen=true;shGrp.visible=true}function hideSh(){shOpen=false}
-function rebuildRes(){while(rsGrp.children.length)rsGrp.remove(rsGrp.children[0]);rsCards.length=0;if(!sRes.length)return;let y=4;sRes.slice(0,10).forEach(s=>{const c=mkSong(s,0x7fd8ff);c.position.y=y;c.userData={song:s,baseY:y,targetY:y,tOpacity:0.14};rsGrp.add(c);rsCards.push(c);y-=1.1});rsGrp.scale.setScalar(shGrp.scale.x)}
-function showRs(){rsOpen=true;rsGrp.visible=true;rsGrp.position.x=-9}function hideRs(){rsOpen=false}
-
-function updHover(e,cards,sg){if(!sg.visible)return null;const mY=(1-e.clientY/window.innerHeight)*10-5;let best=null,bestD=Infinity;cards.forEach(c=>{const wy=c.position.y*sg.scale.y+sg.position.y;const d=Math.abs(mY-wy);if(d<1.0&&d<bestD){bestD=d;best=c}});return best}
-
-// ==================== 交互 ====================
-let rotX=0,rotY=0,velX=0,velY=0,trX=0,trY=0,drag=false,pMX=0,pMY=0,isPlaying=false,bassE=0,trebE=0;
-const SPR=0.06,DMP=0.92,MST=0.4;
-let zoom=14;
-
-document.addEventListener('mousemove',(e)=>{
-  if(drag){velX=(e.clientX-pMX)*0.003;velY=(e.clientY-pMY)*0.003;pMX=e.clientX;pMY=e.clientY}
-  else{trX=(e.clientX/window.innerWidth*2-1)*MST;trY=-(e.clientY/window.innerHeight*2-1)*MST}
-  const hc=updHover(e,shCards,shGrp);if(hc!==hCard){if(hCard){hCard.userData.targetY=hCard.userData.baseY;hCard.userData.tOpacity=0.14}hCard=hc;if(hCard){hCard.userData.targetY=hCard.userData.baseY+0.15;hCard.userData.tOpacity=0.4}}
-  const hr=updHover(e,rsCards,rsGrp);if(hr!==hRes){if(hRes){hRes.userData.targetY=hRes.userData.baseY;hRes.userData.tOpacity=0.14}hRes=hr;if(hRes){hRes.userData.targetY=hRes.userData.baseY+0.15;hRes.userData.tOpacity=0.4}}
-});
-document.addEventListener('mousedown',(e)=>{drag=true;pMX=e.clientX;pMY=e.clientY});
-document.addEventListener('mouseup',()=>{drag=false});
-document.addEventListener('mouseleave',()=>{drag=false});
-document.addEventListener('wheel',(e)=>{zoom=Math.max(6,Math.min(25,zoom+e.deltaY*0.01))},{passive:true});
-document.addEventListener('contextmenu',(e)=>{e.preventDefault();if(shOpen)hideSh();else showSh()});
-document.addEventListener('click',async(e)=>{
-  const t=e.target;if(t.closest('#search-wrap')||t.closest('#settings-btn')||t.closest('#settings-panel')||t.closest('#player'))return;
-  if(rsOpen&&hRes?.userData.song){const s=hRes.userData.song;window._last=sRes;const idx=sRes.indexOf(s);if(idx>=0)playSong(idx);hideRs();return}
-  if(!hCard){if(rsOpen)hideRs();if(shOpen)hideSh();return}
-  const a=hCard.userData.action;
-  if(a==='search')document.getElementById('search-input').focus();
-  else if(a==='leaderboard'||a==='recommend'||a==='playlist'){try{const r=await fetch(a==='leaderboard'?'/api/leaderboard':'/api/recommend');const d=await r.json();sRes=a==='leaderboard'?d.list:(d.list||[]).map(p=>({name:p.name,singer:p.desc||p.count+'首',source:'wy',id:p.id}));window._last=sRes;rebuildRes();showRs()}catch(_){}}
-});
-
-// ==================== 动画循环 ====================
+let lt=performance.now();
 function anim(){
   requestAnimationFrame(anim);
-  u1.uAudioLow.value=bassE;u1.uAudioHigh.value=trebE;u2.uAudioLow.value=bassE;u2.uAudioHigh.value=trebE;u3.uAudioLow.value=bassE;u3.uAudioHigh.value=trebE;
-  if(anlz&&isPlaying){anlz.getByteFrequencyData(fd);bassE=0;for(let i=0;i<12;i++)bassE+=fd[i]/255;bassE/=12;trebE=0;for(let i=80;i<128;i++)trebE+=fd[i]/255;trebE/=48}else{bassE+=(0-bassE)*0.05;trebE+=(0-trebE)*0.05}
-  if(drag){rotX+=velY;rotY+=velX}else{rotX+=(trX-rotX)*SPR;rotY+=(trY-rotY)*SPR;velX*=DMP;velY*=DMP;rotX+=velY;rotY+=velX}
-  l1.rotation.x=rotX;l1.rotation.y=rotY;l2.rotation.x=rotX*0.85;l2.rotation.y=rotY*0.85;l3.rotation.x=rotX*0.6;l3.rotation.y=rotY*0.6;
-  const ap=l3.geometry.attributes.position.array;const t=Date.now()*0.0004;
-  for(let i=0;i<N3;i++){ap[i*3]=fb[i*3]+Math.sin(t+fph[i*3])*fa[i];ap[i*3+1]=fb[i*3+1]+Math.cos(t*0.7+fph[i*3+1])*fa[i];ap[i*3+2]=fb[i*3+2]+Math.sin(t*0.5+fph[i*3+2])*fa[i]*0.5}
-  l3.geometry.attributes.position.needsUpdate=true;
-  // 面板动画
-  if(shGrp.visible){const tx=shOpen?shGrp.scale.x*2+4.5:shGrp.scale.x*2+8;shGrp.position.x+=(tx-shGrp.position.x)*0.06;shCards.forEach(c=>{c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!shOpen&&shGrp.position.x>shGrp.scale.x*2+7.5)shGrp.visible=false}
-  if(rsGrp.visible){const tx=rsOpen?-rsGrp.scale.x*2-4.5:-rsGrp.scale.x*2-8;rsGrp.position.x+=(tx-rsGrp.position.x)*0.06;rsCards.forEach(c=>{c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!rsOpen&&rsGrp.position.x<-rsGrp.scale.x*2-7.5)rsGrp.visible=false}
-  camera.position.z+=(zoom-camera.position.z)*0.05;renderer.render(scene,camera);
+  const now=performance.now();let dt=(now-lt)/1000;lt=now;if(dt>0.1)dt=0.1;
+  if(isPlay&&anlz){anlz.getByteFrequencyData(fd2);let bs=0,ms=0,ts=0,ce=0;for(let i=0;i<12;i++)bs+=fd2[i];bs/=12*255;for(let i=24;i<64;i++)ms+=fd2[i];ms/=40*255;for(let i=80;i<128;i++)ts+=fd2[i];ts/=48*255;for(let i=0;i<12;i++){const v=fd2[i]/255;ce+=v*v}ce/=12;eh.push(ce);if(eh.length>43)eh.shift();let t=false;if(eh.length&&isPlay){let s=0;for(const v of eh)s+=v;const a=s/eh.length;let v=0;for(const ve of eh)v+=(ve-a)**2;v/=eh.length;if(ce>a*(-0.00257*v+1.514)&&(now/1000-lbt)>0.18){t=true;lbt=now/1000}}sb+=(bs-sb)*(1-Math.exp(-8*dt));sm+=(ms-sm)*(1-Math.exp(-10*dt));stt+=(ts-stt)*(1-Math.exp(-12*dt));bv=t?1:bv*Math.exp(-3.4657*dt);if(bv<0.001)bv=0;idle+=(1-idle)*(1-Math.exp(-3*dt))}else{idle+=(0.3-idle)*(1-Math.exp(-2*dt))}
+  U.uT.value+=dt*0.4;U.uD.value=1.2*idle;
+  const f=1-Math.exp(-6*dt);cmx+=(mx-cmx)*f;cmy+=(my-cmy)*f;
+  P.mp.rotation.x=cmx;P.mp.rotation.y=cmy+U.uT.value*0.03;P.gp.rotation.x=cmx;P.gp.rotation.y=cmy+U.uT.value*0.03;
+  if(sg.visible){const tx=so?sg.scale.x*2+4.5:sg.scale.x*2+8;sg.position.x+=(tx-sg.position.x)*0.06;hc.forEach(c=>{c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!so&&sg.position.x>sg.scale.x*2+7.5)sg.visible=false}
+  if(rg.visible){const tx=ro?-rg.scale.x*2-4.5:-rg.scale.x*2-8;rg.position.x+=(tx-rg.position.x)*0.06;rc.forEach(c=>{c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!ro&&rg.position.x<-rg.scale.x*2-7.5)rg.visible=false}
+  cam.position.z+=(zm-cam.position.z)*0.05;rdr.render(sc,cam);
 }
 anim();
-window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);updLayout()});
+window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rdr.setSize(innerWidth,innerHeight);ul()});
 
-// ==================== 音乐逻辑 ====================
-let curSrc='all',audio=null,st=null,curSong=null;
-function doSearch(q){fetch(`/api/search?q=${encodeURIComponent(q)}&source=${curSrc}&limit=20`).then(r=>r.json()).then(d=>{if(!d.list?.length){hideRs();return}sRes=d.list;window._last=d.list;rebuildRes();showRs()}).catch(()=>{})}
-function playSong(idx){const song=window._last?.[idx];if(!song)return;curSong=song;document.getElementById('player-name').textContent=song.name;document.getElementById('player-artist').textContent=song.singer;
-  fetch(`/api/song/url?id=${song.id}&source=${song.source}&quality=128k&name=${encodeURIComponent(song.name)}&singer=${encodeURIComponent(song.singer)}`).then(r=>r.json()).then(async d=>{
-    if(!d.url){toast('暂无可用音源');return}if(audio){audio.pause();audio=null}
-    audio=new Audio(`/api/audio?url=${encodeURIComponent(d.url)}`);audio.crossOrigin='anonymous';
-    audio.addEventListener('timeupdate',()=>{if(!audio?.duration)return;document.getElementById('progress-bar').style.width=(audio.currentTime/audio.duration*100)+'%';const m=Math.floor(audio.currentTime/60);document.getElementById('time-label').textContent=m+':'+String(Math.floor(audio.currentTime%60)).padStart(2,'0')});
-    audio.addEventListener('ended',()=>{document.getElementById('btn-play').textContent='▶';isPlaying=false});
-    audio.addEventListener('play',()=>{isPlaying=true});audio.addEventListener('pause',()=>{isPlaying=false});
-    initAudio();if(actx.state==='suspended')actx.resume();try{const s=actx.createMediaElementSource(audio);s.connect(anlz);s.connect(actx.destination)}catch(_){}
-    await audio.play();document.getElementById('btn-play').textContent='⏸';
-    if(curSong){pHist=pHist.filter(s=>s.name!==curSong.name||s.singer!==curSong.singer);pHist.unshift({name:curSong.name,singer:curSong.singer});if(pHist.length>10)pHist.length=10;rebuildShelf();showSh();clearTimeout(window._st);window._st=setTimeout(()=>{if(isPlaying)hideSh()},6000)}
-  }).catch(()=>{toast('播放失败')});
-}
+// ============ 音乐逻辑 ============
+function doSearch(q){fetch(`/api/search?q=${encodeURIComponent(q)}&source=${curSrc}&limit=20`).then(r=>r.json()).then(d=>{if(!d.list?.length){hrs2();return}sr=d.list;window._last=d.list;rrb();srs()}).catch(()=>{})}
+function playSong(idx){const song=window._last?.[idx];if(!song)return;curSong=song;document.getElementById('player-name').textContent=song.name;document.getElementById('player-artist').textContent=song.singer;fetch(`/api/song/url?id=${song.id}&source=${song.source}&quality=128k&name=${encodeURIComponent(song.name)}&singer=${encodeURIComponent(song.singer)}`).then(r=>r.json()).then(async d=>{if(!d.url){toast('暂无可用音源');return}if(audio){audio.pause();audio=null}audio=new Audio(`/api/audio?url=${encodeURIComponent(d.url)}`);audio.crossOrigin='anonymous';audio.addEventListener('timeupdate',()=>{if(!audio?.duration)return;document.getElementById('progress-bar').style.width=(audio.currentTime/audio.duration*100)+'%';const m=Math.floor(audio.currentTime/60);document.getElementById('time-label').textContent=m+':'+String(Math.floor(audio.currentTime%60)).padStart(2,'0')});audio.addEventListener('ended',()=>{document.getElementById('btn-play').textContent='▶';isPlay=false});audio.addEventListener('play',()=>{isPlay=true});audio.addEventListener('pause',()=>{isPlay=false});initAudio();if(actx.state==='suspended')actx.resume();try{const s=actx.createMediaElementSource(audio);s.connect(anlz);s.connect(actx.destination)}catch(_){}await audio.play();document.getElementById('btn-play').textContent='⏸';if(curSong){ph=ph.filter(s=>s.name!==curSong.name||s.singer!==curSong.singer);ph.unshift({name:curSong.name,singer:curSong.singer});if(ph.length>10)ph.length=10;rsb();ssh();clearTimeout(window._st);window._st=setTimeout(()=>{if(isPlay)hsh()},6000)}}).catch(()=>{toast('播放失败')});}
 function togglePlay(){if(!audio)return;if(audio.paused){audio.play();document.getElementById('btn-play').textContent='⏸'}else{audio.pause();document.getElementById('btn-play').textContent='▶'}}
 function seek(e){if(!audio?.duration)return;audio.currentTime=(e.clientX-e.target.getBoundingClientRect().left)/e.target.offsetWidth*audio.duration}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2500)}
 
-document.getElementById('search-input').addEventListener('input',(e)=>{clearTimeout(st);const q=e.target.value.trim();if(q.length<1){hideRs();return}st=setTimeout(()=>doSearch(q),300)});
-document.addEventListener('keydown',(e)=>{if(e.key===' '&&document.activeElement!==document.getElementById('search-input')){e.preventDefault();togglePlay()}});
+// ============ 视觉控制台 ============
+let fxo=false;
+window.toggleFx=()=>{fxo=!fxo;document.getElementById('fx-panel').classList.toggle('show',fxo)};
+window.onFxChange=()=>{U.uPI.value=parseInt(document.getElementById('fx-palette').value);U.uNS.value=parseFloat(document.getElementById('fx-noise').value);U.uPS.value=parseFloat(document.getElementById('fx-psize').value);localStorage.setItem('fxv4',JSON.stringify({p:U.uPI.value,n:U.uNS.value,s:U.uPS.value}))};
+window.resetFx=()=>{document.getElementById('fx-palette').value=0;document.getElementById('fx-noise').value=0.2;document.getElementById('fx-psize').value=100;onFxChange()};
+try{const fx=JSON.parse(localStorage.getItem('fxv4'));if(fx){document.getElementById('fx-palette').value=fx.p;document.getElementById('fx-noise').value=fx.n;document.getElementById('fx-psize').value=fx.s;onFxChange()}}catch(_){}
+document.addEventListener('click',e=>{if(fxo&&!e.target.closest('#fx-panel')&&!e.target.closest('#fx-fab')){fxo=false;document.getElementById('fx-panel').classList.remove('show')}});
+document.getElementById('search-input').addEventListener('input',e=>{clearTimeout(st2);const q=e.target.value.trim();if(q.length<1){hrs2();return}st2=setTimeout(()=>doSearch(q),300)});
+document.addEventListener('keydown',e=>{if(e.key===' '&&document.activeElement!==document.getElementById('search-input')){e.preventDefault();togglePlay()}});
 
-// ==================== 设置 ====================
-let so=false;
-window.toggleSettings=()=>{so=!so;document.getElementById('settings-panel').classList.toggle('show',so)};
+// ============ 设置 ============
+let so2=false;
+window.toggleSettings=()=>{so2=!so2;document.getElementById('settings-panel').classList.toggle('show',so2)};
 window.importSourceFile=()=>document.getElementById('source-file-input').click();
-window.onFilePicked=(e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>{document.getElementById('custom-source-input').value=ev.target.result;showSS('文件已加载: '+f.name)};r.readAsText(f);e.target.value=''};
+window.onFilePicked=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{document.getElementById('custom-source-input').value=ev.target.result;showSS('文件已加载: '+f.name)};r.readAsText(f);e.target.value=''};
 window.applyCustomSource=async()=>{const s=document.getElementById('custom-source-input').value.trim();if(!s)return showSS('请先粘贴或导入脚本');localStorage.setItem('mp-src',s);try{const r=await fetch('/api/custom-source',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({script:s})});const d=await r.json();showSS(d.ok?'✓ 已应用':'✗ '+d.error)}catch(_){showSS('✗ 服务端错误')}};
 window.resetToBuiltin=()=>{localStorage.removeItem('mp-src');document.getElementById('custom-source-input').value='';fetch('/api/custom-source/reset',{method:'POST'}).catch(()=>{});showSS('已恢复内置')};
 function showSS(m){const el=document.getElementById('custom-source-status');el.textContent=m;el.style.display='block';setTimeout(()=>el.style.display='none',3000)}
 window.playSong=playSong;window.togglePlay=togglePlay;window.seek=seek;
-
-document.addEventListener('click',(e)=>{if(so&&!e.target.closest('#settings-panel')&&!e.target.closest('#settings-btn')){so=false;document.getElementById('settings-panel').classList.remove('show')}});
+document.addEventListener('click',e=>{if(so2&&!e.target.closest('#settings-panel')&&!e.target.closest('#settings-btn')){so2=false;document.getElementById('settings-panel').classList.remove('show')}});
 const saved=localStorage.getItem('mp-src');if(saved)document.getElementById('custom-source-input').value=saved;
 </script>
 </body>
