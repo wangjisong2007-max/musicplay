@@ -1,0 +1,7 @@
+node_modules/
+.cookie
+.qq-cookie
+updates/
+dist/
+*.exe
+*.lnk

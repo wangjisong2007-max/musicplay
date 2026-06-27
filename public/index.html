@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MusicPlay</title>
+<script type="importmap">{"imports":{"three":"/vendor/three.module.min.js"}}</script>
+<style>
+:root{--bg:#05080D;--text:#E4E8EE;--muted:#6B7280;--accent:#7FD8FF;--accent2:#9CFFDF;--accent3:#F4D28A;--accent4:#FF5367}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:var(--text);font-family:"Noto Sans SC","PingFang SC",-apple-system,sans-serif;user-select:none}
+#bg-canvas{position:fixed;inset:0;z-index:0}
+/* glass */
+#glass-svg{position:absolute;width:0;height:0}
+.glass{background:rgba(6,8,12,.55);backdrop-filter:url(#glass-filter) saturate(1);-webkit-backdrop-filter:url(#glass-filter) saturate(1);border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 0 2px 1px rgba(255,255,255,.35),inset 0 0 10px 4px rgba(255,255,255,.08),0 4px 16px rgba(0,0,0,.15),0 8px 24px rgba(0,0,0,.15)}
+/* header */
+#header{position:fixed;top:0;left:0;right:0;z-index:10;padding:12px 20px;display:flex;align-items:flex-start;gap:12px}
+#logo{font-size:16px;font-weight:700;letter-spacing:.08em;color:var(--accent);flex-shrink:0;line-height:40px}
+#search-wrap{flex:1;max-width:480px}
+#search-box{display:flex;align-items:center;padding:8px 14px;gap:8px;border-radius:14px}
+#search-box svg{flex-shrink:0;color:var(--muted)}
+#search-input{flex:1;border:0;outline:0;background:0;color:var(--text);font-size:14px;font-family:inherit}
+#search-input::placeholder{color:var(--muted)}
+#settings-btn{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);flex-shrink:0;padding:0;transition:color .18s}
+#settings-btn:hover{color:var(--text)}
+#settings-panel{position:fixed;top:70px;right:12px;z-index:50;width:260px;padding:16px;border-radius:16px;display:none;flex-direction:column;gap:10px}
+#settings-panel.show{display:flex}
+.setting-label{font-size:12px;color:var(--muted)}
+.setting-textarea{width:100%;height:80px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text);padding:8px;border-radius:8px;font-size:11px;font-family:monospace;resize:vertical;outline:0}
+.setting-btn{flex:1;padding:6px 0;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text);font-size:12px;cursor:pointer}
+.setting-btn:hover{background:rgba(255,255,255,.08)}
+.setting-btn.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+/* player */
+#player{position:fixed;bottom:12px;left:12px;right:12px;z-index:10;padding:14px 20px;display:flex;align-items:center;gap:16px;border-radius:18px}
+#player-info{flex:1;min-width:0}
+#player-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#player-artist{font-size:11px;color:var(--muted)}
+#player-controls{display:flex;align-items:center;gap:14px}
+.ctrl-btn{width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.06);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+.ctrl-btn:hover{background:rgba(255,255,255,.12)}
+.ctrl-btn.play{width:44px;height:44px;background:var(--accent);color:var(--bg)}
+#progress-wrap{width:120px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;cursor:pointer;flex-shrink:0}
+#progress-bar{height:100%;background:var(--accent);border-radius:2px;width:0%}
+#time-label{font-size:10px;color:var(--muted);flex-shrink:0;width:35px;text-align:center}
+/* toast */
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:100;background:rgba(6,8,12,.85);padding:10px 24px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .3s}
+#toast.on{opacity:1}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+</style>
+</head>
+<body>
+<svg id="glass-svg"><defs>
+<filter id="glass-filter" color-interpolation-filters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
+<feTurbulence type="fractalNoise" baseFrequency=".65" numOctaves="3" stitchTiles="stitch" result="noise"/>
+<feColorMatrix type="matrix" values="0.2 0 0 0 0 0 0.2 0 0 0 0 0 0.2 0 0 0 0 0 1 0" in="noise" result="map"/>
+<feDisplacementMap in="SourceGraphic" in2="map" scale="140" xChannelSelector="R" yChannelSelector="B" result="d1"/>
+<feDisplacementMap in="SourceGraphic" in2="map" scale="120" xChannelSelector="R" yChannelSelector="B" result="d2"/>
+<feDisplacementMap in="SourceGraphic" in2="map" scale="100" xChannelSelector="R" yChannelSelector="B" result="d3"/>
+<feOffset in="d1" dx="-70" dy="0" result="o1"/><feOffset in="d2" dx="-35" dy="0" result="o2"/>
+<feMerge result="ra"><feMergeNode in="SourceGraphic"/><feMergeNode in="o1"/></feMerge>
+<feMerge result="ga"><feMergeNode in="SourceGraphic"/><feMergeNode in="o2"/></feMerge>
+<feMerge result="ba"><feMergeNode in="SourceGraphic"/><feMergeNode in="d3"/></feMerge>
+<feColorMatrix in="ra" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="red"/>
+<feColorMatrix in="ga" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="green"/>
+<feColorMatrix in="ba" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="blue"/>
+<feBlend in="red" in2="green" mode="screen" result="rg"/><feBlend in="rg" in2="blue" mode="screen"/>
+</filter></defs></svg>
+<canvas id="bg-canvas"></canvas>
+
+<div id="header">
+  <div id="logo">MusicPlay</div>
+  <div id="search-wrap">
+    <div id="search-box" class="glass">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="search-input" type="text" placeholder="搜索歌曲..." autocomplete="off">
+    </div>
+  </div>
+  <button id="settings-btn" class="glass" onclick="toggleSettings()" title="设置">⚙</button>
+</div>
+
+<div id="settings-panel" class="glass">
+  <div class="setting-label">导入音源脚本</div>
+  <textarea id="custom-source-input" class="setting-textarea" placeholder="粘贴 LX Music 音源脚本 (JS)..."></textarea>
+  <div style="display:flex;gap:8px">
+    <button class="setting-btn" onclick="importSourceFile()">📁 导入文件</button>
+    <button class="setting-btn primary" onclick="applyCustomSource()">✓ 应用</button>
+  </div>
+  <input type="file" id="source-file-input" accept=".js" style="display:none" onchange="onFilePicked(event)">
+  <button class="setting-btn" onclick="resetToBuiltin()">↺ 恢复内置</button>
+  <div id="custom-source-status" style="font-size:11px;color:var(--muted);display:none"></div>
+</div>
+
+<div id="player" class="glass">
+  <div id="player-info"><div id="player-name">未播放</div><div id="player-artist">选择一首歌开始</div></div>
+  <div id="player-controls"><button class="ctrl-btn play" id="btn-play" onclick="togglePlay()">▶</button></div>
+  <div id="progress-wrap" onclick="seek(event)"><div id="progress-bar"></div></div>
+  <span id="time-label">--:--</span>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import * as THREE from 'three';
+// ==================== 粒子视觉 ====================
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,100);
+camera.position.z=14;
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true,antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+
+// 音频
+let actx=null,anlz=null,fd=new Uint8Array(128);
+function initAudio(){if(actx)return;actx=new(window.AudioContext||window.webkitAudioContext)();anlz=actx.createAnalyser();anlz.fftSize=256;anlz.connect(actx.destination)}
+
+// 粒子纹理
+function mkTex(){const c=document.createElement('canvas');c.width=64;c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.08,'rgba(255,255,255,0.95)');g.addColorStop(0.25,'rgba(255,255,255,0.6)');g.addColorStop(0.5,'rgba(200,220,255,0.15)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
+const ptex=mkTex();
+
+// 主粒子层 3000粒
+const N1=3000;const g1=new THREE.BufferGeometry();const p1=new Float32Array(N1*3),c1=new Float32Array(N1*3);
+for(let i=0;i<N1;i++){const r=4+Math.random()*16,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p1[i*3]=r*Math.sin(ph)*Math.cos(th);p1[i*3+1]=r*Math.sin(ph)*Math.sin(th);p1[i*3+2]=r*Math.cos(ph)-2;const co=new THREE.Color().setHSL(0.52+Math.random()*0.28,0.5,0.25+Math.random()*0.6);c1[i*3]=co.r;c1[i*3+1]=co.g;c1[i*3+2]=co.b}
+g1.setAttribute('position',new THREE.BufferAttribute(p1,3));g1.setAttribute('color',new THREE.BufferAttribute(c1,3));
+const m1=new THREE.PointsMaterial({size:0.12,map:ptex,vertexColors:true,transparent:true,opacity:0.75,depthWrite:false,blending:THREE.AdditiveBlending});
+const l1=new THREE.Points(g1,m1);l1.renderOrder=1;scene.add(l1);
+
+// 辉光层 1500粒
+const N2=1500;const g2=new THREE.BufferGeometry();const p2=new Float32Array(N2*3),c2=new Float32Array(N2*3);
+for(let i=0;i<N2;i++){const r=5+Math.random()*15,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p2[i*3]=r*Math.sin(ph)*Math.cos(th);p2[i*3+1]=r*Math.sin(ph)*Math.sin(th);p2[i*3+2]=r*Math.cos(ph)-2;const co=new THREE.Color().setHSL(0.5+Math.random()*0.3,0.35,0.3+Math.random()*0.5);c2[i*3]=co.r;c2[i*3+1]=co.g;c2[i*3+2]=co.b}
+g2.setAttribute('position',new THREE.BufferAttribute(p2,3));g2.setAttribute('color',new THREE.BufferAttribute(c2,3));
+const m2=new THREE.PointsMaterial({size:0.14,map:ptex,vertexColors:true,transparent:true,opacity:0.2,depthWrite:false,blending:THREE.AdditiveBlending});
+const l2=new THREE.Points(g2,m2);l2.renderOrder=0;scene.add(l2);
+
+// 漂浮层 400粒
+const N3=400;const g3=new THREE.BufferGeometry();const p3=new Float32Array(N3*3),c3=new Float32Array(N3*3);
+const fb=new Float32Array(N3*3),fp=new Float32Array(N3*3),fa=new Float32Array(N3);
+for(let i=0;i<N3;i++){fb[i*3]=(Math.random()-0.5)*20;fb[i*3+1]=(Math.random()-0.5)*14;fb[i*3+2]=(Math.random()-0.5)*6;p3[i*3]=fb[i*3];p3[i*3+1]=fb[i*3+1];p3[i*3+2]=fb[i*3+2];fp[i*3]=Math.random()*Math.PI*2;fp[i*3+1]=Math.random()*Math.PI*2;fp[i*3+2]=Math.random()*Math.PI*2;fa[i]=0.1+Math.random()*0.3;const co=new THREE.Color().setHSL(0.45+Math.random()*0.15,0.3,0.4+Math.random()*0.4);c3[i*3]=co.r;c3[i*3+1]=co.g;c3[i*3+2]=co.b}
+g3.setAttribute('position',new THREE.BufferAttribute(p3,3));g3.setAttribute('color',new THREE.BufferAttribute(c3,3));
+const m3=new THREE.PointsMaterial({size:0.035,map:ptex,vertexColors:true,transparent:true,opacity:0.45,depthWrite:false,blending:THREE.AdditiveBlending});
+const l3=new THREE.Points(g3,m3);l3.renderOrder=2;scene.add(l3);
+
+// ==================== 3D 面板 ====================
+const shGrp=new THREE.Group();shGrp.visible=false;shGrp.position.set(7,0,-4);shGrp.rotation.y=-0.35;scene.add(shGrp);
+const rsGrp=new THREE.Group();rsGrp.visible=false;rsGrp.position.set(-7,0,-4);rsGrp.rotation.y=0.35;scene.add(rsGrp);
+const shCards=[],rsCards=[];let pHist=[],sRes=[],shOpen=false,rsOpen=false,hCard=null,hRes=null;
+
+function updLayout(){const s=Math.min(window.innerWidth/1400,window.innerHeight/900,1.15);shGrp.scale.setScalar(s);rsGrp.scale.setScalar(s);shGrp.position.x=4.5+s*2;rsGrp.position.x=-4.5-s*2}
+updLayout();
+
+function mkCard(w,h,color){const g=new THREE.Group();const geo=new THREE.PlaneGeometry(w,h);g.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.14,side:THREE.DoubleSide})));g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color,transparent:true,opacity:0.4})));const inner=new THREE.Mesh(new THREE.PlaneGeometry(w*0.94,0.04),new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.55}));inner.position.y=h*0.42;g.add(inner);return g}
+function mkBtn(w,h,color,text,sub){const g=mkCard(w,h,color);const cv=document.createElement('canvas');cv.width=512;cv.height=100;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.font='bold 22px sans-serif';cx.textAlign='left';cx.fillText(text,20,38);cx.fillStyle='rgba(255,255,255,0.4)';cx.font='14px sans-serif';cx.fillText(sub||'',20,66);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));sp.scale.set(w*0.92,0.9,1);sp.position.set(0,0,0.02);g.add(sp);return g}
+function mkSong(song,color){const g=mkCard(5,1.0,color);const cv=document.createElement('canvas');cv.width=512;cv.height=80;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.font='bold 17px sans-serif';cx.textAlign='left';cx.fillText((song.name||'').slice(0,20),16,30);cx.fillStyle='rgba(255,255,255,0.4)';cx.font='12px sans-serif';cx.fillText((song.singer||'').slice(0,25),16,52);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));sp.scale.set(4.6,0.72,1);sp.position.set(0,0,0.02);g.add(sp);return g}
+function mkLabel(text){const cv=document.createElement('canvas');cv.width=512;cv.height=50;const cx=cv.getContext('2d');cx.fillStyle='rgba(255,255,255,0.5)';cx.font='bold 14px sans-serif';cx.textAlign='left';cx.fillText(text,8,30);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.8,depthTest:false}));sp.scale.set(5,0.45,1);return sp}
+
+function rebuildShelf(){while(shGrp.children.length)shGrp.remove(shGrp.children[0]);shCards.length=0;const CW=5.2,CH=1.0,G=0.25,LH=0.6;let y=5.5;
+const add=(lbl,btn)=>{const s=shGrp.children.length;const L=mkLabel(lbl);L.position.set(0,y,0.03);shGrp.add(L);y-=LH;const b=mkBtn(CW,CH,btn.c,btn.t,btn.sub);b.position.y=y;b.userData={action:btn.a,baseY:y,targetY:y,tOpacity:0.14};shGrp.add(b);shCards.push(b);y-=CH+G};
+add('🔍 搜索',{c:0x7fd8ff,t:'搜索歌曲',sub:'输入关键词搜索',a:'search'});
+add('🕐 最近播放',{c:0x9cffdf,t:(pHist[0]||{}).name||'暂无记录',sub:(pHist[0]||{}).singer||'播放后显示',a:'history'});
+add('📁 我的歌单',{c:0xf4d28a,t:'点击加载',sub:'推荐歌单',a:'playlist'});
+add('✨ 在线推荐',{c:0xff5367,t:'点击加载',sub:'每日推荐',a:'recommend'});
+add('🏆 排行榜',{c:0x7fd8ff,t:'点击加载',sub:'热歌榜',a:'leaderboard'});
+updLayout()}
+rebuildShelf();
+
+function showSh(){shOpen=true;shGrp.visible=true}function hideSh(){shOpen=false}
+function rebuildRes(){while(rsGrp.children.length)rsGrp.remove(rsGrp.children[0]);rsCards.length=0;if(!sRes.length)return;let y=4;sRes.slice(0,10).forEach(s=>{const c=mkSong(s,0x7fd8ff);c.position.y=y;c.userData={song:s,baseY:y,targetY:y,tOpacity:0.14};rsGrp.add(c);rsCards.push(c);y-=1.1});rsGrp.scale.setScalar(shGrp.scale.x)}
+function showRs(){rsOpen=true;rsGrp.visible=true;rsGrp.position.x=-9}function hideRs(){rsOpen=false}
+
+function updHover(e,cards,sg){if(!sg.visible)return null;const mY=(1-e.clientY/window.innerHeight)*10-5;let best=null,bestD=Infinity;cards.forEach(c=>{const wy=c.position.y*sg.scale.y+sg.position.y;const d=Math.abs(mY-wy);if(d<1.0&&d<bestD){bestD=d;best=c}});return best}
+
+// ==================== 交互 ====================
+let rotX=0,rotY=0,velX=0,velY=0,trX=0,trY=0,drag=false,pMX=0,pMY=0,isPlaying=false,bassE=0,trebE=0;
+const SPR=0.06,DMP=0.92,MST=0.4;
+let zoom=14;
+
+document.addEventListener('mousemove',(e)=>{
+  if(drag){velX=(e.clientX-pMX)*0.003;velY=(e.clientY-pMY)*0.003;pMX=e.clientX;pMY=e.clientY}
+  else{trX=(e.clientX/window.innerWidth*2-1)*MST;trY=-(e.clientY/window.innerHeight*2-1)*MST}
+  const hc=updHover(e,shCards,shGrp);if(hc!==hCard){if(hCard){hCard.userData.targetY=hCard.userData.baseY;hCard.userData.tOpacity=0.14}hCard=hc;if(hCard){hCard.userData.targetY=hCard.userData.baseY+0.15;hCard.userData.tOpacity=0.4}}
+  const hr=updHover(e,rsCards,rsGrp);if(hr!==hRes){if(hRes){hRes.userData.targetY=hRes.userData.baseY;hRes.userData.tOpacity=0.14}hRes=hr;if(hRes){hRes.userData.targetY=hRes.userData.baseY+0.15;hRes.userData.tOpacity=0.4}}
+});
+document.addEventListener('mousedown',(e)=>{drag=true;pMX=e.clientX;pMY=e.clientY});
+document.addEventListener('mouseup',()=>{drag=false});
+document.addEventListener('mouseleave',()=>{drag=false});
+document.addEventListener('wheel',(e)=>{zoom=Math.max(6,Math.min(25,zoom+e.deltaY*0.01))},{passive:true});
+document.addEventListener('contextmenu',(e)=>{e.preventDefault();if(shOpen)hideSh();else showSh()});
+document.addEventListener('click',async(e)=>{
+  const t=e.target;if(t.closest('#search-wrap')||t.closest('#settings-btn')||t.closest('#settings-panel')||t.closest('#player'))return;
+  if(rsOpen&&hRes?.userData.song){const s=hRes.userData.song;window._last=sRes;const idx=sRes.indexOf(s);if(idx>=0)playSong(idx);hideRs();return}
+  if(!hCard){if(rsOpen)hideRs();if(shOpen)hideSh();return}
+  const a=hCard.userData.action;
+  if(a==='search')document.getElementById('search-input').focus();
+  else if(a==='leaderboard'||a==='recommend'||a==='playlist'){try{const r=await fetch(a==='leaderboard'?'/api/leaderboard':'/api/recommend');const d=await r.json();sRes=a==='leaderboard'?d.list:(d.list||[]).map(p=>({name:p.name,singer:p.desc||p.count+'首',source:'wy',id:p.id}));window._last=sRes;rebuildRes();showRs()}catch(_){}}
+});
+
+// ==================== 动画循环 ====================
+function anim(){
+  requestAnimationFrame(anim);
+  m1.opacity=0.45+bassE*0.35;m2.opacity=0.12+bassE*0.2;m3.opacity=0.3+bassE*0.25;l2.material.size=0.1+bassE*0.12;
+  if(anlz&&isPlaying){anlz.getByteFrequencyData(fd);bassE=0;for(let i=0;i<12;i++)bassE+=fd[i]/255;bassE/=12;trebE=0;for(let i=80;i<128;i++)trebE+=fd[i]/255;trebE/=48}else{bassE+=(0-bassE)*0.05;trebE+=(0-trebE)*0.05}
+  if(drag){rotX+=velY;rotY+=velX}else{rotX+=(trX-rotX)*SPR;rotY+=(trY-rotY)*SPR;velX*=DMP;velY*=DMP;rotX+=velY;rotY+=velX}
+  l1.rotation.x=rotX;l1.rotation.y=rotY;l2.rotation.x=rotX*0.85;l2.rotation.y=rotY*0.85;l3.rotation.x=rotX*0.6;l3.rotation.y=rotY*0.6;
+  const ap=l3.geometry.attributes.position.array;const t=Date.now()*0.0003;
+  for(let i=0;i<N3;i++){ap[i*3]=fb[i*3]+Math.sin(t+fp[i*3])*fa[i];ap[i*3+1]=fb[i*3+1]+Math.cos(t*0.7+fp[i*3+1])*fa[i];ap[i*3+2]=fb[i*3+2]+Math.sin(t*0.5+fp[i*3+2])*fa[i]*0.5}
+  l3.geometry.attributes.position.needsUpdate=true;
+  // 面板动画
+  if(shGrp.visible){const tx=shOpen?shGrp.scale.x*2+4.5:shGrp.scale.x*2+8;shGrp.position.x+=(tx-shGrp.position.x)*0.06;shCards.forEach(c=>{c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!shOpen&&shGrp.position.x>shGrp.scale.x*2+7.5)shGrp.visible=false}
+  if(rsGrp.visible){const tx=rsOpen?-rsGrp.scale.x*2-4.5:-rsGrp.scale.x*2-8;rsGrp.position.x+=(tx-rsGrp.position.x)*0.06;rsCards.forEach(c=>{c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!rsOpen&&rsGrp.position.x<-rsGrp.scale.x*2-7.5)rsGrp.visible=false}
+  camera.position.z+=(zoom-camera.position.z)*0.05;renderer.render(scene,camera);
+}
+anim();
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);updLayout()});
+
+// ==================== 音乐逻辑 ====================
+let curSrc='all',audio=null,st=null,curSong=null;
+function doSearch(q){fetch(`/api/search?q=${encodeURIComponent(q)}&source=${curSrc}&limit=20`).then(r=>r.json()).then(d=>{if(!d.list?.length){hideRs();return}sRes=d.list;window._last=d.list;rebuildRes();showRs()}).catch(()=>{})}
+function playSong(idx){const song=window._last?.[idx];if(!song)return;curSong=song;document.getElementById('player-name').textContent=song.name;document.getElementById('player-artist').textContent=song.singer;
+  fetch(`/api/song/url?id=${song.id}&source=${song.source}&quality=128k&name=${encodeURIComponent(song.name)}&singer=${encodeURIComponent(song.singer)}`).then(r=>r.json()).then(async d=>{
+    if(!d.url){toast('暂无可用音源');return}if(audio){audio.pause();audio=null}
+    audio=new Audio(`/api/audio?url=${encodeURIComponent(d.url)}`);audio.crossOrigin='anonymous';
+    audio.addEventListener('timeupdate',()=>{if(!audio?.duration)return;document.getElementById('progress-bar').style.width=(audio.currentTime/audio.duration*100)+'%';const m=Math.floor(audio.currentTime/60);document.getElementById('time-label').textContent=m+':'+String(Math.floor(audio.currentTime%60)).padStart(2,'0')});
+    audio.addEventListener('ended',()=>{document.getElementById('btn-play').textContent='▶';isPlaying=false});
+    audio.addEventListener('play',()=>{isPlaying=true});audio.addEventListener('pause',()=>{isPlaying=false});
+    initAudio();if(actx.state==='suspended')actx.resume();try{const s=actx.createMediaElementSource(audio);s.connect(anlz);s.connect(actx.destination)}catch(_){}
+    await audio.play();document.getElementById('btn-play').textContent='⏸';
+    if(curSong){pHist=pHist.filter(s=>s.name!==curSong.name||s.singer!==curSong.singer);pHist.unshift({name:curSong.name,singer:curSong.singer});if(pHist.length>10)pHist.length=10;rebuildShelf();showSh();clearTimeout(window._st);window._st=setTimeout(()=>{if(isPlaying)hideSh()},6000)}
+  }).catch(()=>{toast('播放失败')});
+}
+function togglePlay(){if(!audio)return;if(audio.paused){audio.play();document.getElementById('btn-play').textContent='⏸'}else{audio.pause();document.getElementById('btn-play').textContent='▶'}}
+function seek(e){if(!audio?.duration)return;audio.currentTime=(e.clientX-e.target.getBoundingClientRect().left)/e.target.offsetWidth*audio.duration}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2500)}
+
+document.getElementById('search-input').addEventListener('input',(e)=>{clearTimeout(st);const q=e.target.value.trim();if(q.length<1){hideRs();return}st=setTimeout(()=>doSearch(q),300)});
+document.addEventListener('keydown',(e)=>{if(e.key===' '&&document.activeElement!==document.getElementById('search-input')){e.preventDefault();togglePlay()}});
+
+// ==================== 设置 ====================
+let so=false;
+window.toggleSettings=()=>{so=!so;document.getElementById('settings-panel').classList.toggle('show',so)};
+window.importSourceFile=()=>document.getElementById('source-file-input').click();
+window.onFilePicked=(e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>{document.getElementById('custom-source-input').value=ev.target.result;showSS('文件已加载: '+f.name)};r.readAsText(f);e.target.value=''};
+window.applyCustomSource=async()=>{const s=document.getElementById('custom-source-input').value.trim();if(!s)return showSS('请先粘贴或导入脚本');localStorage.setItem('mp-src',s);try{const r=await fetch('/api/custom-source',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({script:s})});const d=await r.json();showSS(d.ok?'✓ 已应用':'✗ '+d.error)}catch(_){showSS('✗ 服务端错误')}};
+window.resetToBuiltin=()=>{localStorage.removeItem('mp-src');document.getElementById('custom-source-input').value='';fetch('/api/custom-source/reset',{method:'POST'}).catch(()=>{});showSS('已恢复内置')};
+function showSS(m){const el=document.getElementById('custom-source-status');el.textContent=m;el.style.display='block';setTimeout(()=>el.style.display='none',3000)}
+window.playSong=playSong;window.togglePlay=togglePlay;window.seek=seek;
+
+document.addEventListener('click',(e)=>{if(so&&!e.target.closest('#settings-panel')&&!e.target.closest('#settings-btn')){so=false;document.getElementById('settings-panel').classList.remove('show')}});
+const saved=localStorage.getItem('mp-src');if(saved)document.getElementById('custom-source-input').value=saved;
+</script>
+</body>
+</html>

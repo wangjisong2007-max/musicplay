@@ -1,0 +1,19 @@
+{
+  "name": "musicplay",
+  "productName": "MusicPlay",
+  "version": "0.1.0",
+  "description": "沉浸式多源音乐播放器",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server.js"
+  },
+  "dependencies": {
+    "gsap": "^3.12.0",
+    "NeteaseCloudMusicApi": "^4.32.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}
