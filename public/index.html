@@ -112,29 +112,42 @@ let actx=null,anlz=null,fd=new Uint8Array(128);
 function initAudio(){if(actx)return;actx=new(window.AudioContext||window.webkitAudioContext)();anlz=actx.createAnalyser();anlz.fftSize=256;anlz.connect(actx.destination)}
 
 // 粒子纹理
-function mkTex(){const c=document.createElement('canvas');c.width=64;c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.08,'rgba(255,255,255,0.95)');g.addColorStop(0.25,'rgba(255,255,255,0.6)');g.addColorStop(0.5,'rgba(200,220,255,0.15)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
+function mkTex(){const c=document.createElement('canvas');c.width=64;c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.06,'rgba(255,255,255,0.98)');g.addColorStop(0.2,'rgba(255,255,255,0.7)');g.addColorStop(0.45,'rgba(200,220,255,0.2)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
 const ptex=mkTex();
 
-// 主粒子层 3000粒
-const N1=3000;const g1=new THREE.BufferGeometry();const p1=new Float32Array(N1*3),c1=new Float32Array(N1*3);
-for(let i=0;i<N1;i++){const r=4+Math.random()*16,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p1[i*3]=r*Math.sin(ph)*Math.cos(th);p1[i*3+1]=r*Math.sin(ph)*Math.sin(th);p1[i*3+2]=r*Math.cos(ph)-2;const co=new THREE.Color().setHSL(0.52+Math.random()*0.28,0.5,0.25+Math.random()*0.6);c1[i*3]=co.r;c1[i*3+1]=co.g;c1[i*3+2]=co.b}
-g1.setAttribute('position',new THREE.BufferAttribute(p1,3));g1.setAttribute('color',new THREE.BufferAttribute(c1,3));
-const m1=new THREE.PointsMaterial({size:0.12,map:ptex,vertexColors:true,transparent:true,opacity:0.75,depthWrite:false,blending:THREE.AdditiveBlending});
+// 自定义着色器：支持逐粒子大小 + 音频脉冲 + 辉光
+const pVS=`attribute float size;attribute vec3 color;varying vec3 vCol;varying float vAlpha,vBright;uniform float uAudioLow,uAudioHigh,uPointScale;
+void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);float s=size*uPointScale*(280.0/-mv.z);gl_PointSize=clamp(s,0.5,60.0);gl_Position=projectionMatrix*mv;vCol=color;vAlpha=0.55+uAudioLow*0.45;vBright=0.3+uAudioHigh*0.5;}`;
+
+const pFS=`uniform sampler2D uTex;varying vec3 vCol;varying float vAlpha,vBright;
+void main(){vec4 t=texture2D(uTex,gl_PointCoord);if(t.a<0.015)discard;float a=t.a*t.a;vec3 col=vCol*(0.65+vBright*0.5);gl_FragColor=vec4(col,a*vAlpha*0.72);}`;
+
+const bFS=`uniform sampler2D uTex;varying vec3 vCol;varying float vAlpha,vBright;
+void main(){vec4 t=texture2D(uTex,gl_PointCoord);if(t.a<0.008)discard;float a=t.a*t.a*t.a;vec3 col=vCol*(0.9+vBright*0.8);gl_FragColor=vec4(col,a*vAlpha*0.22);}`;
+
+// 主粒子 2500粒 (带逐粒大小)
+const N1=2500;const g1=new THREE.BufferGeometry();const p1=new Float32Array(N1*3),c1=new Float32Array(N1*3),sz1=new Float32Array(N1);
+for(let i=0;i<N1;i++){const r=3.5+Math.random()*17,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p1[i*3]=r*Math.sin(ph)*Math.cos(th);p1[i*3+1]=r*Math.sin(ph)*Math.sin(th);p1[i*3+2]=r*Math.cos(ph)-2;const co=new THREE.Color().setHSL(0.5+Math.random()*0.25,0.55,0.2+Math.random()*0.65);c1[i*3]=co.r;c1[i*3+1]=co.g;c1[i*3+2]=co.b;sz1[i]=0.015+Math.random()*0.09}
+g1.setAttribute('position',new THREE.BufferAttribute(p1,3));g1.setAttribute('color',new THREE.BufferAttribute(c1,3));g1.setAttribute('size',new THREE.BufferAttribute(sz1,1));
+const u1={uTex:{value:ptex},uPointScale:{value:650},uAudioLow:{value:0},uAudioHigh:{value:0}};
+const m1=new THREE.ShaderMaterial({uniforms:u1,vertexShader:pVS,fragmentShader:pFS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
 const l1=new THREE.Points(g1,m1);l1.renderOrder=1;scene.add(l1);
 
-// 辉光层 1500粒
-const N2=1500;const g2=new THREE.BufferGeometry();const p2=new Float32Array(N2*3),c2=new Float32Array(N2*3);
-for(let i=0;i<N2;i++){const r=5+Math.random()*15,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p2[i*3]=r*Math.sin(ph)*Math.cos(th);p2[i*3+1]=r*Math.sin(ph)*Math.sin(th);p2[i*3+2]=r*Math.cos(ph)-2;const co=new THREE.Color().setHSL(0.5+Math.random()*0.3,0.35,0.3+Math.random()*0.5);c2[i*3]=co.r;c2[i*3+1]=co.g;c2[i*3+2]=co.b}
-g2.setAttribute('position',new THREE.BufferAttribute(p2,3));g2.setAttribute('color',new THREE.BufferAttribute(c2,3));
-const m2=new THREE.PointsMaterial({size:0.14,map:ptex,vertexColors:true,transparent:true,opacity:0.2,depthWrite:false,blending:THREE.AdditiveBlending});
+// 辉光层 1200粒 (更大更淡)
+const N2=1200;const g2=new THREE.BufferGeometry();const p2=new Float32Array(N2*3),c2=new Float32Array(N2*3),sz2=new Float32Array(N2);
+for(let i=0;i<N2;i++){const r=5+Math.random()*14,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);p2[i*3]=r*Math.sin(ph)*Math.cos(th);p2[i*3+1]=r*Math.sin(ph)*Math.sin(th);p2[i*3+2]=r*Math.cos(ph)-2;const co=new THREE.Color().setHSL(0.48+Math.random()*0.3,0.4,0.25+Math.random()*0.55);c2[i*3]=co.r;c2[i*3+1]=co.g;c2[i*3+2]=co.b;sz2[i]=0.06+Math.random()*0.16}
+g2.setAttribute('position',new THREE.BufferAttribute(p2,3));g2.setAttribute('color',new THREE.BufferAttribute(c2,3));g2.setAttribute('size',new THREE.BufferAttribute(sz2,1));
+const u2={uTex:{value:ptex},uPointScale:{value:520},uAudioLow:{value:0},uAudioHigh:{value:0}};
+const m2=new THREE.ShaderMaterial({uniforms:u2,vertexShader:pVS,fragmentShader:bFS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
 const l2=new THREE.Points(g2,m2);l2.renderOrder=0;scene.add(l2);
 
-// 漂浮层 400粒
-const N3=400;const g3=new THREE.BufferGeometry();const p3=new Float32Array(N3*3),c3=new Float32Array(N3*3);
-const fb=new Float32Array(N3*3),fp=new Float32Array(N3*3),fa=new Float32Array(N3);
-for(let i=0;i<N3;i++){fb[i*3]=(Math.random()-0.5)*20;fb[i*3+1]=(Math.random()-0.5)*14;fb[i*3+2]=(Math.random()-0.5)*6;p3[i*3]=fb[i*3];p3[i*3+1]=fb[i*3+1];p3[i*3+2]=fb[i*3+2];fp[i*3]=Math.random()*Math.PI*2;fp[i*3+1]=Math.random()*Math.PI*2;fp[i*3+2]=Math.random()*Math.PI*2;fa[i]=0.1+Math.random()*0.3;const co=new THREE.Color().setHSL(0.45+Math.random()*0.15,0.3,0.4+Math.random()*0.4);c3[i*3]=co.r;c3[i*3+1]=co.g;c3[i*3+2]=co.b}
-g3.setAttribute('position',new THREE.BufferAttribute(p3,3));g3.setAttribute('color',new THREE.BufferAttribute(c3,3));
-const m3=new THREE.PointsMaterial({size:0.035,map:ptex,vertexColors:true,transparent:true,opacity:0.45,depthWrite:false,blending:THREE.AdditiveBlending});
+// 漂浮微粒 350粒
+const N3=350;const g3=new THREE.BufferGeometry();const p3=new Float32Array(N3*3),c3=new Float32Array(N3*3),sz3=new Float32Array(N3);
+const fb=new Float32Array(N3*3),fph=new Float32Array(N3*3),fa=new Float32Array(N3);
+for(let i=0;i<N3;i++){fb[i*3]=(Math.random()-0.5)*18;fb[i*3+1]=(Math.random()-0.5)*12;fb[i*3+2]=(Math.random()-0.5)*6;p3[i*3]=fb[i*3];p3[i*3+1]=fb[i*3+1];p3[i*3+2]=fb[i*3+2];fph[i*3]=Math.random()*Math.PI*2;fph[i*3+1]=Math.random()*Math.PI*2;fph[i*3+2]=Math.random()*Math.PI*2;fa[i]=0.08+Math.random()*0.25;const co=new THREE.Color().setHSL(0.42+Math.random()*0.18,0.35,0.35+Math.random()*0.45);c3[i*3]=co.r;c3[i*3+1]=co.g;c3[i*3+2]=co.b;sz3[i]=0.012+Math.random()*0.045}
+g3.setAttribute('position',new THREE.BufferAttribute(p3,3));g3.setAttribute('color',new THREE.BufferAttribute(c3,3));g3.setAttribute('size',new THREE.BufferAttribute(sz3,1));
+const u3={uTex:{value:ptex},uPointScale:{value:580},uAudioLow:{value:0},uAudioHigh:{value:0}};
+const m3=new THREE.ShaderMaterial({uniforms:u3,vertexShader:pVS,fragmentShader:pFS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
 const l3=new THREE.Points(g3,m3);l3.renderOrder=2;scene.add(l3);
 
 // ==================== 3D 面板 ====================
@@ -194,12 +207,12 @@ document.addEventListener('click',async(e)=>{
 // ==================== 动画循环 ====================
 function anim(){
   requestAnimationFrame(anim);
-  m1.opacity=0.45+bassE*0.35;m2.opacity=0.12+bassE*0.2;m3.opacity=0.3+bassE*0.25;l2.material.size=0.1+bassE*0.12;
+  u1.uAudioLow.value=bassE;u1.uAudioHigh.value=trebE;u2.uAudioLow.value=bassE;u2.uAudioHigh.value=trebE;u3.uAudioLow.value=bassE;u3.uAudioHigh.value=trebE;
   if(anlz&&isPlaying){anlz.getByteFrequencyData(fd);bassE=0;for(let i=0;i<12;i++)bassE+=fd[i]/255;bassE/=12;trebE=0;for(let i=80;i<128;i++)trebE+=fd[i]/255;trebE/=48}else{bassE+=(0-bassE)*0.05;trebE+=(0-trebE)*0.05}
   if(drag){rotX+=velY;rotY+=velX}else{rotX+=(trX-rotX)*SPR;rotY+=(trY-rotY)*SPR;velX*=DMP;velY*=DMP;rotX+=velY;rotY+=velX}
   l1.rotation.x=rotX;l1.rotation.y=rotY;l2.rotation.x=rotX*0.85;l2.rotation.y=rotY*0.85;l3.rotation.x=rotX*0.6;l3.rotation.y=rotY*0.6;
-  const ap=l3.geometry.attributes.position.array;const t=Date.now()*0.0003;
-  for(let i=0;i<N3;i++){ap[i*3]=fb[i*3]+Math.sin(t+fp[i*3])*fa[i];ap[i*3+1]=fb[i*3+1]+Math.cos(t*0.7+fp[i*3+1])*fa[i];ap[i*3+2]=fb[i*3+2]+Math.sin(t*0.5+fp[i*3+2])*fa[i]*0.5}
+  const ap=l3.geometry.attributes.position.array;const t=Date.now()*0.0004;
+  for(let i=0;i<N3;i++){ap[i*3]=fb[i*3]+Math.sin(t+fph[i*3])*fa[i];ap[i*3+1]=fb[i*3+1]+Math.cos(t*0.7+fph[i*3+1])*fa[i];ap[i*3+2]=fb[i*3+2]+Math.sin(t*0.5+fph[i*3+2])*fa[i]*0.5}
   l3.geometry.attributes.position.needsUpdate=true;
   // 面板动画
   if(shGrp.visible){const tx=shOpen?shGrp.scale.x*2+4.5:shGrp.scale.x*2+8;shGrp.position.x+=(tx-shGrp.position.x)*0.06;shCards.forEach(c=>{c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!shOpen&&shGrp.position.x>shGrp.scale.x*2+7.5)shGrp.visible=false}
