@@ -1,15 +1,17 @@
-// MusicPlay Server — 多源音乐 API + 静态服务
+// MusicPlay Server — 多源音乐 API + 静态服务 + WebDAV + 歌词
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const querystring = require('querystring');
 
 const PORT = process.env.PORT || 3000;
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
-// ============ 工具函数 ============
+// ============ UTILS ============
 function md5(s) { return crypto.createHash('md5').update(s, 'utf8').digest('hex'); }
+function b64Encode(data) { return Buffer.from(data, 'utf-8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_'); }
 
 function fetchJson(url, opts = {}) {
   return new Promise((resolve, reject) => {
@@ -41,7 +43,7 @@ function sendJSON(res, data, code = 200) {
   res.end(JSON.stringify(data));
 }
 
-// ============ 网易云 eapi ============
+// ============ NETASE EAPI ============
 const EAPI_KEY = 'e82ckenh8dichen8';
 
 function eapi(url, obj) {
@@ -65,11 +67,7 @@ async function wySearch(keywords, limit = 20) {
   if (body.status !== 200 || body.body.code !== 200) return [];
   return (body.body.data?.resources || []).map(r => {
     const s = r.baseInfo?.simpleSongData || r;
-    return {
-      id: String(s.id), name: s.name || '', singer: (s.ar || []).map(a => a.name).join('、'),
-      album: s.al?.name || '', duration: Math.floor((s.dt || 0) / 1000),
-      img: s.al?.picUrl || '', source: 'wy',
-    };
+    return { id: String(s.id), name: s.name || '', singer: (s.ar || []).map(a => a.name).join('、'), album: s.al?.name || '', duration: Math.floor((s.dt || 0) / 1000), img: s.al?.picUrl || '', source: 'wy' };
   });
 }
 
@@ -85,39 +83,38 @@ async function wyUrl(songId, quality = '128k') {
   return d?.url || '';
 }
 
-// ============ 洛雪 API (URL解析, 全平台无损) ============
+async function wyLyric(songId) {
+  const body = await fetchJson('https://interface3.music.163.com/eapi/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Origin': 'https://music.163.com' },
+    body: eapi('/api/song/lyric', { id: String(songId), lv: -1, tv: -1, rv: -1 }),
+  });
+  if (body.status !== 200) return '';
+  return body.body?.lrc?.lyric || body.body?.tlyric?.lyric || '';
+}
+
+// ============ LX API ============
 const LX_API = 'https://88.lxmusic.xn--fiqs8s';
 const LX_KEY = 'lxmusic';
 
-function b64Encode(data) {
-  return Buffer.from(data, 'utf-8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_');
-}
-
 async function lxUrl(songId, source = 'kw', quality = '128k') {
   const url = `${LX_API}/v4/url/${source}/${songId}/${quality}`;
-  const body = await fetchJson(url, {
-    headers: { 'User-Agent': UA, 'X-Request-Key': LX_KEY },
-  });
+  const body = await fetchJson(url, { headers: { 'User-Agent': UA, 'X-Request-Key': LX_KEY } });
   if (body.status !== 200 || body.body.code !== 0) return '';
   return body.body.data || '';
 }
 
-// ============ 酷我搜索 ============
+// ============ KUWO ============
 async function kwSearch(keywords, limit = 20) {
   const url = `http://search.kuwo.cn/r.s?all=${encodeURIComponent(keywords)}&pn=0&rn=${limit}&ft=music&rformat=json&encoding=utf8&mobi=1`;
   const body = await fetchJson(url);
   if (!body.body?.abslist) return [];
   return body.body.abslist.map(s => ({
-    id: String(s.MUSICRID || '').replace('MUSIC_', ''),
-    name: s.SONGNAME || s.NAME || '',
-    singer: s.ARTIST || s.SINGER || '',
-    album: s.ALBUM || '',
-    duration: parseInt(s.DURATION || '0'),
-    img: '', source: 'kw',
+    id: String(s.MUSICRID || '').replace('MUSIC_', ''), name: s.SONGNAME || s.NAME || '', singer: s.ARTIST || s.SINGER || '', album: s.ALBUM || '', duration: parseInt(s.DURATION || '0'), img: '', source: 'kw',
   }));
 }
 
-// ============ 咪咕搜索 ============
+// ============ MIGU ============
 async function mgSearch(keywords, limit = 20) {
   const url = `https://app.c.nf.migu.cn/MIGUM2.0/v1.0/content/search_all.do?isCopyright=1&pageNo=1&pageSize=${limit}&searchSwitch={%22song%22:1}&sort=0&text=${encodeURIComponent(keywords)}`;
   const body = await fetchJson(url, { headers: { 'Referer': 'https://m.music.migu.cn/' } });
@@ -126,84 +123,95 @@ async function mgSearch(keywords, limit = 20) {
   return songs.map(s => {
     const alb = s.albums?.[0] || {};
     const img = s.imgItems?.[1]?.img || s.imgItems?.[0]?.img || '';
-    return {
-      id: String(s.copyrightId || s.id || ''),
-      name: s.name || '', singer: (s.singers || []).map(a => a.name).join('、'),
-      album: alb.name || '', duration: 0, img, source: 'mg',
-    };
+    return { id: String(s.copyrightId || s.id || ''), name: s.name || '', singer: (s.singers || []).map(a => a.name).join('、'), album: alb.name || '', duration: 0, img, source: 'mg' };
   });
 }
 
-// ============ 聚合搜索 ============
+// ============ AGGREGATE ============
 async function multiSearch(keywords, limit = 12) {
-  const results = await Promise.allSettled([
-    wySearch(keywords, limit),
-    kwSearch(keywords, limit),
-    mgSearch(keywords, limit),
-  ]);
+  const results = await Promise.allSettled([wySearch(keywords, limit), kwSearch(keywords, limit), mgSearch(keywords, limit)]);
   const all = [];
-  for (const r of results) {
-    if (r.status === 'fulfilled') all.push(...r.value);
-  }
+  for (const r of results) { if (r.status === 'fulfilled') all.push(...r.value); }
   return all;
 }
 
-// ============ HTTP 路由 ============
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
-  '.png': 'image/png', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' };
+// ============ WEBDAV CLIENT (lightweight, no deps) ============
+async function webdavRequest(webdavUrl, method, filePath, body, auth) {
+  const u = new URL(webdavUrl);
+  const fullPath = u.pathname.replace(/\/$/, '') + '/' + filePath.replace(/^\//, '');
+  const mod = u.protocol === 'https:' ? https : http;
+  const headers = {
+    'User-Agent': UA,
+    'Content-Type': body ? 'application/octet-stream' : undefined,
+    'Content-Length': body ? Buffer.byteLength(body).toString() : undefined,
+  };
+  if (auth) {
+    const authStr = Buffer.from(auth.user + ':' + auth.pass).toString('base64');
+    headers['Authorization'] = 'Basic ' + authStr;
+  }
+  return new Promise((resolve, reject) => {
+    const req = mod.request({
+      hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80),
+      path: fullPath, method, headers,
+      timeout: 15000,
+    }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+    if (body) req.write(body);
+    req.end();
+  });
+}
 
-let customSourceScript = null; // user-imported source script
+// ============ HTTP ROUTER ============
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' };
+
+let customSourceScript = null;
 
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, `http://localhost:${PORT}`);
   const p = u.pathname;
 
+  // CORS
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' });
+    res.end(); return;
+  }
+
   if (p === '/api/sources') return sendJSON(res, {
     sources: [{ id: 'all', name: '聚合' }, { id: 'lx', name: '洛雪' }, { id: 'kw', name: '酷我' }, { id: 'mg', name: '咪咕' }, { id: 'wy', name: '网易云' }],
   });
 
-  // 自定义音源导入
+  // Custom source
   if (p === '/api/custom-source' && req.method === 'POST') {
     try {
-      const chunks = [];
-      req.on('data', (c) => chunks.push(c));
+      const chunks = []; req.on('data', (c) => chunks.push(c));
       req.on('end', async () => {
         try {
           const body = JSON.parse(Buffer.concat(chunks).toString());
           const script = body.script || '';
           if (!script || script.length > 500000) return sendJSON(res, { ok: false, error: '脚本无效或过大' });
-          // Store in memory
-          try {
           customSourceScript = script;
-          // Parse MUSIC_SOURCE from script to get available platforms
           const srcMatch = script.match(/MUSIC_SOURCE\s*=\s*\[([^\]]*)\]/);
-          const qualityMatch = script.match(/MUSIC_QUALITY\s*=\s*(\{[^}]+\})/s);
           let sources = [];
           if (srcMatch) {
             const ids = srcMatch[1].replace(/['"]/g, '').split(',').map(s => s.trim()).filter(Boolean);
             const nameMap = { kw: '酷我', kg: '酷狗', tx: 'QQ', wy: '网易云', mg: '咪咕', local: '本地' };
             sources = ids.map(id => ({ id, name: nameMap[id] || id.toUpperCase() }));
           }
-          // Validate script syntax
           new Function('globalThis', script);
           sendJSON(res, { ok: true, name: '自定义音源', sources });
-          } catch (e) {
-            sendJSON(res, { ok: false, error: '脚本语法错误: ' + e.message });
-          }
-        } catch (e) {
-          sendJSON(res, { ok: false, error: '请求解析失败' });
-        }
+        } catch (e) { sendJSON(res, { ok: false, error: '脚本语法错误: ' + e.message }); }
       });
     } catch (_) { sendJSON(res, { ok: false, error: '服务器错误' }, 500); }
     return;
   }
+  if (p === '/api/custom-source/reset' && req.method === 'POST') { customSourceScript = null; return sendJSON(res, { ok: true }); }
 
-  // 重置为内置音源
-  if (p === '/api/custom-source/reset' && req.method === 'POST') {
-    customSourceScript = null;
-    return sendJSON(res, { ok: true });
-  }
-
+  // Search
   if (p === '/api/search') {
     const q = u.searchParams.get('q') || '';
     const src = u.searchParams.get('source') || 'all';
@@ -221,50 +229,39 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 排行榜
+  // Leaderboard
   if (p === '/api/leaderboard') {
     try {
       const { playlist_detail } = require('NeteaseCloudMusicApi');
       const r = await playlist_detail({ id: '3778678', s: 0 });
       const tracks = (r.body?.playlist?.tracks || []).slice(0, 15);
-      const list = tracks.map(t => ({
-        id: String(t.id), name: t.name || '', singer: (t.ar || []).map(a => a.name).join('、'),
-        album: t.al?.name || '', duration: Math.floor((t.dt || 0) / 1000), img: t.al?.picUrl || '', source: 'wy',
-      }));
+      const list = tracks.map(t => ({ id: String(t.id), name: t.name || '', singer: (t.ar || []).map(a => a.name).join('、'), album: t.al?.name || '', duration: Math.floor((t.dt || 0) / 1000), img: t.al?.picUrl || '', source: 'wy' }));
       sendJSON(res, { list, name: '热歌榜' });
     } catch (e) { sendJSON(res, { list: [], error: e.message }, 500); }
     return;
   }
 
-  // 推荐歌单
+  // Recommend
   if (p === '/api/recommend') {
     try {
       const { personalized } = require('NeteaseCloudMusicApi');
       const r = await personalized({ limit: 8, cookie: '' });
-      const list = (r.body?.result || []).map(p => ({
-        id: String(p.id), name: p.name || '', desc: p.copywriter || '', img: p.picUrl || '', count: p.trackCount || 0,
-      }));
+      const list = (r.body?.result || []).map(p => ({ id: String(p.id), name: p.name || '', desc: p.copywriter || '', img: p.picUrl || '', count: p.trackCount || 0 }));
       sendJSON(res, { list });
     } catch (e) { sendJSON(res, { list: [], error: e.message }, 500); }
     return;
   }
 
+  // Song URL
   if (p === '/api/song/url') {
-    const id = u.searchParams.get('id');
-    const src = u.searchParams.get('source') || 'wy';
-    const quality = u.searchParams.get('quality') || '128k';
-    const name = u.searchParams.get('name') || '';
-    const singer = u.searchParams.get('singer') || '';
+    const id = u.searchParams.get('id'), src = u.searchParams.get('source') || 'wy', quality = u.searchParams.get('quality') || '128k';
+    const name = u.searchParams.get('name') || '', singer = u.searchParams.get('singer') || '';
     if (!id) return sendJSON(res, { url: '' }, 400);
     try {
       let url = '';
       if (src === 'wy') url = await wyUrl(id, quality);
       else if (src === 'lx') url = await lxUrl(id, 'kw', quality);
-      // Try lx as fallback for kw/mg before wy fallback
-      if (!url && (src === 'kw' || src === 'mg')) {
-        url = await lxUrl(id, src, quality);
-      }
-      // wy as ultimate fallback
+      if (!url && (src === 'kw' || src === 'mg')) url = await lxUrl(id, src, quality);
       if (!url && (src === 'kw' || src === 'mg') && name) {
         const wyResults = await wySearch(`${name} ${singer}`, 3);
         if (wyResults[0]) url = await wyUrl(wyResults[0].id, quality);
@@ -274,6 +271,19 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Lyrics
+  if (p === '/api/lyrics') {
+    const id = u.searchParams.get('id'), src = u.searchParams.get('source') || 'wy';
+    if (!id) return sendJSON(res, { lrc: '' });
+    try {
+      let lrc = '';
+      if (src === 'wy') lrc = await wyLyric(id);
+      sendJSON(res, { lrc });
+    } catch (e) { sendJSON(res, { lrc: '', error: e.message }, 500); }
+    return;
+  }
+
+  // Audio proxy
   if (p === '/api/audio') {
     const audioUrl = u.searchParams.get('url');
     if (!audioUrl) { res.writeHead(400); res.end(); return; }
@@ -288,7 +298,69 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 静态文件
+  // ============ Open API v1 ============
+  if (p === '/api/v1/player/status') {
+    return sendJSON(res, { status: 'ok', version: '2.0', sources: ['wy', 'kw', 'mg'], customSource: !!customSourceScript });
+  }
+  if (p === '/api/v1/search') {
+    const q = u.searchParams.get('q') || '';
+    const limit = Math.min(50, parseInt(u.searchParams.get('limit') || '20'));
+    if (!q) return sendJSON(res, { list: [] });
+    try {
+      const list = await multiSearch(q, limit);
+      sendJSON(res, { list });
+    } catch (e) { sendJSON(res, { list: [], error: e.message }, 500); }
+    return;
+  }
+
+  // ============ WebDAV ============
+  if (p === '/api/webdav/test' && req.method === 'POST') {
+    try {
+      const chunks = []; req.on('data', (c) => chunks.push(c));
+      req.on('end', async () => {
+        try {
+          const { url, user, pass } = JSON.parse(Buffer.concat(chunks).toString());
+          if (!url) return sendJSON(res, { ok: false, error: '地址为空' });
+          const r = await webdavRequest(url, 'PROPFIND', '', null, { user, pass });
+          sendJSON(res, { ok: r.status >= 200 && r.status < 300 });
+        } catch (e) { sendJSON(res, { ok: false, error: e.message }); }
+      });
+    } catch (_) { sendJSON(res, { ok: false, error: '请求错误' }, 500); }
+    return;
+  }
+
+  if (p === '/api/webdav/backup' && req.method === 'POST') {
+    try {
+      const chunks = []; req.on('data', (c) => chunks.push(c));
+      req.on('end', async () => {
+        try {
+          const { url, user, pass, data } = JSON.parse(Buffer.concat(chunks).toString());
+          if (!url || !data) return sendJSON(res, { ok: false, error: '参数不足' });
+          const r = await webdavRequest(url, 'PUT', 'musicplay-settings.json', data, { user, pass });
+          sendJSON(res, { ok: r.status >= 200 && r.status < 300 });
+        } catch (e) { sendJSON(res, { ok: false, error: e.message }); }
+      });
+    } catch (_) { sendJSON(res, { ok: false, error: '请求错误' }, 500); }
+    return;
+  }
+
+  if (p === '/api/webdav/restore' && req.method === 'POST') {
+    try {
+      const chunks = []; req.on('data', (c) => chunks.push(c));
+      req.on('end', async () => {
+        try {
+          const { url, user, pass } = JSON.parse(Buffer.concat(chunks).toString());
+          if (!url) return sendJSON(res, { ok: false, error: '参数不足' });
+          const r = await webdavRequest(url, 'GET', 'musicplay-settings.json', null, { user, pass });
+          if (r.status >= 200 && r.status < 300) sendJSON(res, { ok: true, data: r.body });
+          else sendJSON(res, { ok: false, error: '文件不存在或权限不足 (HTTP ' + r.status + ')' });
+        } catch (e) { sendJSON(res, { ok: false, error: e.message }); }
+      });
+    } catch (_) { sendJSON(res, { ok: false, error: '请求错误' }, 500); }
+    return;
+  }
+
+  // Static files
   let filePath = p === '/' ? '/index.html' : p;
   filePath = path.join(__dirname, 'public', filePath);
   const ext = path.extname(filePath);
@@ -298,7 +370,6 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Content-Length': stat.size });
     fs.createReadStream(filePath).pipe(res);
   } catch (_) {
-    // SPA fallback
     try {
       const idx = path.join(__dirname, 'public', 'index.html');
       res.writeHead(200, { 'Content-Type': 'text/html' });
