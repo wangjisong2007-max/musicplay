@@ -49,6 +49,39 @@ html,body{height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:va
 .fx-row select,.fx-row input[type=range]{flex:1;background:rgba(255,255,255,.06);color:var(--text);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 6px;font-size:11px;outline:0}
 .fx-row input[type=range]{height:4px;-webkit-appearance:none;appearance:none;padding:0}
 .fx-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
+/* 真·3D 滚轮布局 */
+.wheel-wrap{position:fixed;left:6vw;top:45%;transform:translateY(-50%);width:380px;height:500px;perspective:1000px;z-index:20;pointer-events:none;display:none}
+.wheel-group{position:absolute;top:50%;left:0;width:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(0.2,1,0.3,1)}
+.w-card{position:absolute;top:-38px;left:0;width:100%;height:76px;transform-origin:50% 50%;background:rgba(6,8,12,.55);backdrop-filter:url(#glass-filter) saturate(1);-webkit-backdrop-filter:url(#glass-filter) saturate(1);border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 0 2px 1px rgba(255,255,255,.35),inset 0 0 10px 4px rgba(255,255,255,.08),0 4px 16px rgba(0,0,0,.15),0 8px 24px rgba(0,0,0,.15);border-radius:14px;display:flex;align-items:center;padding:10px 16px;gap:14px;cursor:pointer;transition:opacity .4s ease,background .3s ease;will-change:opacity;pointer-events:auto}
+.w-card.active{background:rgba(6,8,12,.75);border-color:rgba(255,255,255,.2);box-shadow:inset 0 0 2px 1px rgba(255,255,255,.5),inset 0 0 10px 4px rgba(255,255,255,.12),0 4px 16px rgba(0,0,0,.15),0 8px 24px rgba(0,0,0,.15)}
+.w-cover{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 10px rgba(0,0,0,.3),inset 0 1px 1px rgba(255,255,255,.1);flex-shrink:0}
+.w-info{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.w-title{color:#fff;font-size:16px;font-weight:700}
+.w-sub{color:rgba(255,255,255,.45);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.w-btn{background:rgba(255,255,255,.8);color:#000;border:none;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;transition:all .3s ease;flex-shrink:0}
+.w-card.active .w-btn{background:#fff;box-shadow:0 0 0 2px rgba(255,180,0,.8),0 4px 12px rgba(255,180,0,.3)}
+.w-close{position:absolute;top:10px;right:10px;color:rgba(255,255,255,.5);background:rgba(6,8,12,.55);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:3px 10px;font-size:11px;cursor:pointer;z-index:21;pointer-events:auto}
+/* 垂直堆叠卡片流 (极简暗黑哑光版) */
+#stack-wrap{position:fixed;right:6vw;top:50%;transform:translateY(-50%);width:360px;height:600px;perspective:1200px;z-index:20;pointer-events:none;transition:opacity .3s ease}
+#stack-group{position:relative;width:100%;height:100%;transform-style:preserve-3d}
+.s-card{position:absolute;top:50%;left:0;width:100%;height:140px;margin-top:-70px;border-radius:20px;background:rgba(16,16,18,.85);backdrop-filter:blur(30px) saturate(1.2);-webkit-backdrop-filter:blur(30px) saturate(1.2);border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 40px rgba(0,0,0,.7);display:flex;align-items:center;padding:12px;gap:16px;pointer-events:auto;cursor:pointer;overflow:hidden;transition:transform .5s cubic-bezier(0.2,1,0.3,1),opacity .5s cubic-bezier(0.2,1,0.3,1),background .3s;will-change:transform,opacity}
+.s-card.active-card{background:rgba(22,22,24,.95);border:1px solid rgba(255,255,255,.12)}
+.s-cover{width:116px;height:116px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.s-info{flex:1;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.s-tag{font-size:10px;font-weight:800;color:rgba(255,255,255,.8);margin-bottom:4px}
+.s-title{color:#fff;font-size:16px;font-weight:700;line-height:1.3;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.s-sub{color:rgba(255,255,255,.45);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-actions{display:flex;gap:8px;margin-top:12px}
+.s-btn{border:0;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer}
+.s-btn.play-btn{background:#fff;color:#000}
+.s-btn:not(.play-btn){background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)}
+.s-detail{position:absolute;top:150px;left:20px;right:20px;opacity:0;pointer-events:none;transition:opacity .3s}
+.s-card.expanded{width:420px;height:480px;background:rgba(18,18,20,.98);transform:translate3d(-100px,0,80px)!important;z-index:100!important;cursor:default;align-items:flex-start;box-shadow:0 40px 100px rgba(0,0,0,.9)}
+.s-card.expanded .s-actions{display:none}
+.s-card.expanded .s-detail{opacity:1;pointer-events:auto;transition-delay:.1s}
+.s-detail-header{font-size:14px;color:#fff;font-weight:700;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:10px}
+.s-detail-list{font-size:12px;color:rgba(255,255,255,.5);padding:14px;background:rgba(255,255,255,.03);border-radius:10px}
+
 </style>
 </head>
 <body>
@@ -102,6 +135,17 @@ html,body{height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:va
   <button class="setting-btn" onclick="resetFx()">↺ 重置</button>
 </div>
 
+<!-- 左侧 3D 滚轮搜索容器 -->
+<div class="wheel-wrap"><div class="wheel-group" id="music-wheel"><div class="w-close" onclick="document.querySelector('.wheel-wrap').style.display='none'">✕ 关闭</div></div></div>
+<!-- 垂直堆叠卡片流 -->
+<div id="stack-wrap"><div id="stack-group">
+  <div class="s-card" data-index="0"><div class="s-info"><div class="s-tag">系统设置</div><div class="s-title">视听实验室</div><div class="s-sub">VISUALS &amp; AUDIO</div><div class="s-actions"><button class="s-btn play-btn">▶ 开启特效</button></div></div><div class="s-detail"><div class="s-detail-header">能量海</div><div class="s-detail-list"><div class="fx-row"><span>亮度</span><input type="range" min="0.1" max="40" step="0.5" value="4" oninput="P.gu.gBright.value=parseFloat(this.value)"></div><div class="fx-row"><span>大小</span><input type="range" min="10" max="2000" step="10" value="100" oninput="P.gu.uPS.value=parseFloat(this.value)"></div><div class="fx-row"><span>颜色</span><input type="range" min="0" max="5" step="0.1" value="1" oninput="P.gu.gColor.value.r=parseFloat(this.value)" style="width:40px"><input type="range" min="0" max="5" step="0.1" value="1" oninput="P.gu.gColor.value.g=parseFloat(this.value)" style="width:40px"><input type="range" min="0" max="5" step="0.1" value="1" oninput="P.gu.gColor.value.b=parseFloat(this.value)" style="width:40px"></div></div><div class="s-detail-header" style="margin-top:16px">音频球</div><div class="s-detail-list"><div class="fx-row"><span>大小</span><input type="range" min="10" max="1000" step="5" value="100" oninput="U.uPS.value=parseFloat(this.value)"></div><div class="fx-row"><span>噪声</span><input type="range" min="0.01" max="2.5" step="0.01" value="1.25" oninput="U.uNS.value=parseFloat(this.value)"></div><div class="fx-row"><span>颜色</span><input type="range" min="0" max="5" step="0.1" value="1" oninput="U.bColor.value.r=parseFloat(this.value)" style="width:40px"><input type="range" min="0" max="5" step="0.1" value="1" oninput="U.bColor.value.g=parseFloat(this.value)" style="width:40px"><input type="range" min="0" max="5" step="0.1" value="1" oninput="U.bColor.value.b=parseFloat(this.value)" style="width:40px"></div></div></div></div>
+  <div class="s-card" data-index="1"><div class="s-info"><div class="s-tag">全平台检索</div><div class="s-title">聚合发现</div><div class="s-sub">全网音源搜索</div><div class="s-actions"><button class="s-btn play-btn">▶ 搜索</button></div></div><div class="s-detail"><div class="s-detail-list">01 搜索历史为空</div></div></div>
+  <div class="s-card" data-index="2"><div class="s-info"><div class="s-tag">收藏歌单</div><div class="s-title">我的血液终将凝固，我的爱也终...</div><div class="s-sub">NE · 223首 · 播放 26.2万</div><div class="s-actions"><button class="s-btn play-btn">▶ 播放歌单</button><button class="s-btn">评论</button></div></div><div class="s-detail"><div class="s-detail-header">我的血液终将凝固，我的爱也终...</div><div class="s-detail-list">01 歌单为空</div></div></div>
+  <div class="s-card" data-index="3"><div class="s-info"><div class="s-tag">引擎管理</div><div class="s-title">音源驱动</div><div class="s-sub">SOURCE ENGINE</div><div class="s-actions"><button class="s-btn play-btn">▶ 配置</button></div></div><div class="s-detail"><div class="s-detail-header">音源管理</div><div class="s-detail-list">01 内置音源</div></div></div>
+  <div class="s-card" data-index="4"><div class="s-info"><div class="s-tag">通用</div><div class="s-title">配置与同步</div><div class="s-sub">SETTINGS &amp; SYNC</div></div><div class="s-detail"><div class="s-detail-header">系统设置</div><div class="s-detail-list">01 通用设置</div></div></div>
+</div></div>
+
 <script type="module">
 import * as THREE from 'three';
 
@@ -133,23 +177,17 @@ ${PN}${PC}
 void main(){
   float t=atan(position.z,position.x),p=asin(normalize(position).y);
   vec2 uv=vec2((t/PI)*6.0,(p/(PI/2.0))*6.0);
-  float n=pnoise(uv*uNS+vec2(uT*0.15,uT*0.1),vec2(12.0));
-  vec3 np=position+normal*n*uD;
+  float n=pnoise(uv*uNS*3.0+vec2(uT*0.4,uT*0.3),vec2(12.0));
+  float bump=sin(uT*8.0+position.y*3.0)*0.5+0.5;
+  vec3 np=position+normal*(n*uD+bump*uD*0.3);
   vec4 mv=modelViewMatrix*vec4(np,1.0);
   gl_Position=projectionMatrix*mv;
   gl_PointSize=uPS/(-mv.z);
   vC=gc(fract((position.y/4.0)*0.5+0.5+n*0.25),uPI);
   vA=0.4+abs(n)*0.6;
 }`;
-
-const FS=`precision highp float;
-varying vec3 vC;varying float vA;
-void main(){
-  float d=length(gl_PointCoord-vec2(0.5));if(d>0.5)discard;
-  float e=smoothstep(0.5,0.35,d),r=smoothstep(0.5,0.0,d);
-  gl_FragColor=vec4(vC*(0.5+r*0.5),vA*e);
-}`;
-
+const FS=`precision highp float;varying vec3 vC;varying float vA;uniform vec3 bColor;
+void main(){float d=length(gl_PointCoord-vec2(0.5));if(d>0.5)discard;float e=smoothstep(0.5,0.35,d),r=smoothstep(0.5,0.0,d);gl_FragColor=vec4(vC*bColor*(0.5+r*0.5),vA*e);}`;
 const VG=`precision highp float;
 uniform float uT,uPI,uNS,uD,uPS;attribute float aR;varying vec3 vC;varying float vA;
 #define PI 3.14159265359
@@ -157,162 +195,134 @@ ${PN}${PC}
 void main(){
   float t=atan(position.z,position.x),p=asin(normalize(position).y);
   vec2 uv=vec2((t/PI)*6.0,(p/(PI/2.0))*6.0);
-  float n=pnoise(uv*uNS+vec2(uT*0.15,uT*0.1),vec2(12.0));
-  vec3 np=position+normal*(n*uD*1.2+0.1);
+  float n=pnoise(uv*uNS*3.0+vec2(uT*0.4,uT*0.3),vec2(12.0));
+  float bump=sin(uT*8.0+position.y*3.0)*0.5+0.5;
+  vec3 np=position+normal*(n*uD*1.2+0.1+bump*uD*0.3);
   vec4 mv=modelViewMatrix*vec4(np,1.0);
   gl_Position=projectionMatrix*mv;
   gl_PointSize=uPS*1.5/(-mv.z);
   vC=gc(fract((position.y/4.0)*0.5+0.5+n*0.25),uPI);
   vA=0.15+abs(n)*0.25;
 }`;
-
-const FG=`precision highp float;
-varying vec3 vC;varying float vA;
+const FG=`precision highp float;varying vec3 vC;varying float vA;uniform vec3 bColor;
+void main(){float d=length(gl_PointCoord-vec2(0.5));if(d>0.5)discard;gl_FragColor=vec4(vC*bColor*1.5,vA*exp(-d*4.0));}`;
+// ============ 能量海 (地面) 专属着色器 ============
+const G_VS=`precision highp float;
+uniform float uT,uPI,uNS,uD,uPS;attribute float aR;varying vec3 vC;varying float vA;
+#define PI 3.14159265359
+vec4 permute(vec4 x){return mod(((x*34.0)+10.0)*x,289.0);}
+float pnoise(vec2 P,vec2 rep){
+  vec4 Pi=floor(P.xyxy)+vec4(0.0,0.0,1.0,1.0),Pf=fract(P.xyxy)-vec4(0.0,0.0,1.0,1.0);
+  Pi=mod(Pi,rep.xyxy);Pi=mod(Pi,289.0);vec4 ix=Pi.xzxz,iy=Pi.yyww,fx=Pf.xzxz,fy=Pf.yyww;
+  vec4 i=permute(permute(ix)+iy),gx=2.0*fract(i*0.0243902439)-1.0,gy=abs(gx)-0.5,tx=floor(gx+0.5);gx=gx-tx;
+  vec2 g00=vec2(gx.x,gy.x),g10=vec2(gx.y,gy.y),g01=vec2(gx.z,gy.z),g11=vec2(gx.w,gy.w);
+  vec4 norm=vec4(1.79284291400159)-0.85373472095314*vec4(dot(g00,g00),dot(g01,g01),dot(g10,g10),dot(g11,g11));
+  g00=g00*norm.x;g01=g01*norm.y;g10=g10*norm.z;g11=g11*norm.w;
+  float n00=dot(g00,vec2(fx.x,fy.x)),n10=dot(g10,vec2(fx.y,fy.y)),n01=dot(g01,vec2(fx.z,fy.z)),n11=dot(g11,vec2(fx.w,fy.w));
+  vec2 fxy=Pf.xy*Pf.xy*Pf.xy*(Pf.xy*(Pf.xy*6.0-15.0)+10.0),nx=mix(vec2(n00,n01),vec2(n10,n11),fxy.x);
+  return 2.3*mix(nx.x,nx.y,fxy.y);
+}
+vec3 pal(float t,vec3 a,vec3 b,vec3 c,vec3 d){return a+b*cos(6.28318530718*(c*t+d));}
+vec3 gc(float p,float i){
+  if(i>0.5&&i<1.5)return pal(p,vec3(0.8,0.7,0.6),vec3(0.2,0.2,0.2),vec3(1.0,1.0,1.0),vec3(0.0,0.1,0.2));
+  if(i>1.5&&i<2.5)return pal(p,vec3(0.15,0.25,0.45),vec3(0.15,0.15,0.2),vec3(1.0,1.0,1.0),vec3(0.0,0.1,0.2));
+  if(i>2.5)return pal(p,vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1.0,1.0,1.0),vec3(0.0,0.25,0.5));
+  return pal(p,vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1.0,1.0,1.0),vec3(0.0,0.33,0.67));
+}
 void main(){
-  float d=length(gl_PointCoord-vec2(0.5));if(d>0.5)discard;
-  gl_FragColor=vec4(vC*1.5,vA*exp(-d*4.0));
+  vec3 pos=position;
+  float dist=length(pos.xz);
+  float wave=sin(dist*1.5-uT*2.5)*exp(-dist*0.15);
+  float jn=pnoise(pos.xz*1.2+vec2(uT*0.5),vec2(20.0));
+  float jump=max(0.0,jn)*uD*1.5*exp(-dist*0.1);
+  pos.y+=wave+jump;
+  vec4 mv=modelViewMatrix*vec4(pos,1.0);
+  gl_Position=projectionMatrix*mv;
+  gl_PointSize=uPS*(0.5+jump*0.5)/(-mv.z);
+  vec3 bc=gc(fract(dist*0.05-uT*0.1),uPI)*0.8;
+  vec3 sc=gc(fract(jn*0.5+uT*0.3),uPI)*3.0;
+  vC=mix(bc,sc,min(1.0,jump*0.8));
+  vA=(0.5+jump*0.5)*exp(-dist*0.04);
+}`;
+const G_FS=`precision highp float;varying vec3 vC;varying float vA;uniform float gBright;uniform vec3 gColor;
+void main(){
+  float d=length(gl_PointCoord-vec2(0.5));
+  if(d>0.5)discard;
+  vec3 col=vC*gBright*gColor;
+  gl_FragColor=vec4(col,vA);
 }`;
 
-// ============ 几何体 ============
+// ground material uniforms
+const gu={uT:{value:0},uPI:{value:0},uNS:{value:1.25},uD:{value:1.2},uPS:{value:100},gBright:{value:0.8},gColor:{value:new THREE.Color(1,1,1)}};
+
 function bgeo(N,R){
   const a=new Float32Array(N*3),b=new Float32Array(N*3),c=new Float32Array(N);
-  for(let i=0;i<N;i++){
-    const t=Math.acos(1-2*(i+0.5)/N),p=Math.sqrt(N*Math.PI)*t,s=Math.sin(t);
-    const x=s*Math.cos(p),y=s*Math.sin(p),z=Math.cos(t);
-    a[i*3]=x*R;a[i*3+1]=y*R;a[i*3+2]=z*R;b[i*3]=x;b[i*3+1]=y;b[i*3+2]=z;c[i]=Math.random();
-  }
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.BufferAttribute(a,3));
-  g.setAttribute('normal',new THREE.BufferAttribute(b,3));
-  g.setAttribute('aR',new THREE.BufferAttribute(c,1));
-  return g;
+  for(let i=0;i<N;i++){const t=Math.acos(1-2*(i+0.5)/N),p=Math.sqrt(N*Math.PI)*t,s=Math.sin(t);const x=s*Math.cos(p),y=s*Math.sin(p),z=Math.cos(t);a[i*3]=x*R;a[i*3+1]=y*R;a[i*3+2]=z*R;b[i*3]=x;b[i*3+1]=y;b[i*3+2]=z;c[i]=Math.random();}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.setAttribute('normal',new THREE.BufferAttribute(b,3));g.setAttribute('aR',new THREE.BufferAttribute(c,1));return g;
 }
-
+function pgeo(size,density){const N=density*density;const a=new Float32Array(N*3);const c=new Float32Array(N);let idx=0;for(let i=0;i<density;i++){for(let j=0;j<density;j++){a[idx*3]=(i/density-0.5)*size;a[idx*3+1]=-4.5;a[idx*3+2]=(j/density-0.5)*size;c[idx]=Math.random();idx++;}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.setAttribute('aR',new THREE.BufferAttribute(c,1));return g}
 function cps(sc){
-  const g=bgeo(10000,4);
-  const u={uT:{value:0},uPI:{value:0},uNS:{value:0.2},uD:{value:1.2},uPS:{value:100}};
+  const g=bgeo(10000,4),u={uT:{value:0},uPI:{value:0},uNS:{value:1.25},uD:{value:1.2},uPS:{value:100},bColor:{value:new THREE.Color(1,1,1)}};
   const mm=new THREE.ShaderMaterial({uniforms:u,vertexShader:VS,fragmentShader:FS,transparent:true,depthWrite:false,blending:THREE.NormalBlending});
   const mp=new THREE.Points(g,mm);mp.frustumCulled=false;mp.renderOrder=1;sc.add(mp);
   const gm=new THREE.ShaderMaterial({uniforms:u,vertexShader:VG,fragmentShader:FG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
   const gp=new THREE.Points(g,gm);gp.frustumCulled=false;gp.renderOrder=0;sc.add(gp);
-  return{u,mp,gp,g,sp(i){u.uPI.value=Math.min(3,Math.max(0,i))},dis(){g.dispose();mm.dispose();gm.dispose()}};
+  const gg=pgeo(120,200);const gmat=new THREE.ShaderMaterial({uniforms:gu,vertexShader:G_VS,fragmentShader:G_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});const groundPts=new THREE.Points(gg,gmat);groundPts.frustumCulled=false;groundPts.renderOrder=1;sc.add(groundPts);
+  return{u,mp,gp,g,groundPts,gg,gmat,gu,sp(i){u.uPI.value=Math.min(3,Math.max(0,i))},dis(){g.dispose();mm.dispose();gm.dispose();gg.dispose();gmat.dispose()}};
 }
 
-// ============ 场景 ============
 const sc=new THREE.Scene();sc.background=new THREE.Color(0x020205);
 const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,100);cam.position.z=15;
 const rdr=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),antialias:false,powerPreference:'high-performance',alpha:false});
 rdr.setPixelRatio(Math.min(devicePixelRatio,2));rdr.setSize(innerWidth,innerHeight);
-const P=cps(sc);const U=P.u;
+const P=cps(sc);const U=P.u;window.P=P;window.U=U;
 
-// ============ 音频状态（动画循环前声明，避免TDZ） ============
 let actx=null,anlz=null,fd2=new Uint8Array(128),sb=0,sm=0,stt=0,bv=0,eh=[],lbt=0,idle=1.0;
-let curSrc='all',audio=null,st2=null,curSong=null,isPlay=false;
+let curSrc='all',audio=null,st2=null,curSong=null,isPlay=false,sr=[];
 
-// ============ 3D面板 ============
-const sg=new THREE.Group();sg.visible=false;sg.position.set(7,0,0.5);sg.rotation.y=-0.35;sc.add(sg);
-const rg=new THREE.Group();rg.visible=false;rg.position.set(-7,0,0.5);rg.rotation.y=0.35;sc.add(rg);
-let hc=[],rc=[],ph=[],sr=[],so=false,ro=false,hcd=null,hrs=null;
-function ul(){const s=Math.min(innerWidth/1400,innerHeight/900,1.15);sg.scale.setScalar(s);rg.scale.setScalar(s);sg.position.x=4.5+s*2;rg.position.x=-4.5-s*2}ul();
-function mkCard(w,h,c){
-  const g=new THREE.Group();
-  const geo=new THREE.PlaneGeometry(w,h);
-  // dark backing — depth layer
-  g.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x080c14,transparent:true,opacity:0.55,side:THREE.DoubleSide})));
-  // glass fill — colored semi-transparent
-  g.add(new THREE.Mesh(new THREE.PlaneGeometry(w*0.96,h*0.92),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.12,side:THREE.DoubleSide})));
-  // bright edge frame
-  g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.65})));
-  // top highlight — simulates glass light reflection
-  const th=new THREE.Mesh(new THREE.PlaneGeometry(w*0.88,0.01),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.5,side:THREE.DoubleSide}));
-  th.position.y=h*0.46;g.add(th);
-  return g;
-}
-function mkBtn(w,h,c,t,sub){
-  const g=mkCard(w,h,c);
-  const cv=document.createElement('canvas');cv.width=512;cv.height=120;
-  const cx=cv.getContext('2d');
-  cx.fillStyle='#ffffff';cx.font='700 22px "Noto Sans SC","PingFang SC",sans-serif';cx.textAlign='left';
-  cx.fillText(t,24,42);
-  cx.fillStyle='rgba(255,255,255,0.45)';cx.font='400 13px sans-serif';
-  cx.fillText(sub||'',24,70);
-  // small arrow indicator
-  cx.fillStyle='rgba(255,255,255,0.25)';cx.font='16px sans-serif';cx.textAlign='right';
-  cx.fillText('→',488,42);
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.92,depthTest:false}));
-  sp.scale.set(w*0.94,0.9,1);sp.position.set(0,0,0.03);g.add(sp);
-  return g;
-}
-function mkSong(s,c){
-  const g=mkCard(5,1,c);
-  const cv=document.createElement('canvas');cv.width=512;cv.height=80;
-  const cx=cv.getContext('2d');
-  cx.fillStyle='#fff';cx.font='700 16px "Noto Sans SC","PingFang SC",sans-serif';cx.textAlign='left';
-  cx.fillText((s.name||'').slice(0,22),18,32);
-  cx.fillStyle='rgba(255,255,255,0.38)';cx.font='400 12px sans-serif';
-  cx.fillText((s.singer||'').slice(0,28),18,54);
-  cx.fillStyle='rgba(255,255,255,0.18)';cx.font='11px sans-serif';cx.textAlign='right';
-  cx.fillText('播放 →',496,34);
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.9,depthTest:false}));
-  sp.scale.set(4.6,0.72,1);sp.position.set(0,0,0.03);g.add(sp);
-  return g;
-}
-function mkLbl(t){
-  const cv=document.createElement('canvas');cv.width=512;cv.height=44;
-  const cx=cv.getContext('2d');
-  cx.fillStyle='rgba(255,255,255,0.55)';cx.font='600 13px "Noto Sans SC","PingFang SC",sans-serif';cx.textAlign='left';
-  cx.fillText(t,6,28);
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0.85,depthTest:false}));
-  sp.scale.set(5,0.4,1);return sp;
-}
-function rsb(){while(sg.children.length)sg.remove(sg.children[0]);hc=[];const W=5.2,H=1.0,G=0.25,LH=0.6;let y=5.5;const a=(l,b)=>{const L=mkLbl(l);L.position.set(0,y,0.03);sg.add(L);y-=LH;const c=mkBtn(W,H,b.c,b.t,b.sub);c.position.y=y;c.userData={action:b.a,baseY:y,targetY:y,tScale:1,tOpacity:0.25};sg.add(c);hc.push(c);y-=H+G};a('🔍 搜索',{c:0x7fd8ff,t:'搜索歌曲',sub:'输入关键词搜索',a:'search'});a('🕐 最近播放',{c:0x9cffdf,t:(ph[0]||{}).name||'暂无记录',sub:(ph[0]||{}).singer||'播放后显示',a:'history'});a('📁 我的歌单',{c:0xf4d28a,t:'点击加载',sub:'推荐歌单',a:'playlist'});a('✨ 在线推荐',{c:0xff5367,t:'点击加载',sub:'每日推荐',a:'recommend'});a('🏆 排行榜',{c:0x7fd8ff,t:'点击加载',sub:'热歌榜',a:'leaderboard'});ul()}rsb();
-function ssh(){so=true;sg.visible=true}function hsh(){so=false}
-function rrb(){while(rg.children.length)rg.remove(rg.children[0]);rc=[];if(!sr.length)return;let y=4;sr.slice(0,10).forEach(s=>{const c=mkSong(s,0x7fd8ff);c.position.y=y;c.userData={song:s,baseY:y,targetY:y,tOpacity:0.25};rg.add(c);rc.push(c);y-=1.1});rg.scale.setScalar(sg.scale.x)}
-function srs(){ro=true;rg.visible=true;rg.position.x=-9}function hrs2(){ro=false}
-function uh(e,cs,g){if(!g.visible)return null;const m=(1-e.clientY/innerHeight)*10-5;let b=null,bd=Infinity;cs.forEach(c=>{const wy=c.position.y*g.scale.y+g.position.y,d=Math.abs(m-wy);if(d<1&&d<bd){bd=d;b=c}});return b}
+// ============ 3D面板已移除, UI已全面DOM化 ============
 
-// ============ 交互 ============
 let mx=0,my=0,cmx=0,cmy=0,zm=15;
-document.addEventListener('mousemove',e=>{mx=-(e.clientY/innerHeight*2-1)*0.3;my=(e.clientX/innerWidth*2-1)*0.3;const hc=uh(e,hc,sg);if(hc!==hcd){if(hcd){hcd.userData.targetY=hcd.userData.baseY;hcd.userData.tScale=1;hcd.userData.tOpacity=0.25}hcd=hc;if(hc){hc.userData.targetY=hc.userData.baseY+0.2;hc.userData.tScale=1.04;hc.userData.tOpacity=0.5}}const hr=uh(e,rc,rg);if(hr!==hrs){if(hrs){hrs.userData.targetY=hrs.userData.baseY;hrs.userData.tScale=1;hrs.userData.tOpacity=0.25}hrs=hr;if(hr){hr.userData.targetY=hr.userData.baseY+0.2;hr.userData.tScale=1.04;hr.userData.tOpacity=0.5}}});
+document.addEventListener('mousemove',e=>{mx=-(e.clientY/innerHeight*2-1)*0.3;my=(e.clientX/innerWidth*2-1)*0.3});
 document.addEventListener('wheel',e=>{zm=Math.max(8,Math.min(25,zm+e.deltaY*0.01))},{passive:true});
-document.addEventListener('contextmenu',e=>{e.preventDefault();so?hsh():ssh()});
-document.addEventListener('click',async e=>{const t=e.target;if(t.closest('#search-wrap')||t.closest('#settings-btn')||t.closest('#settings-panel')||t.closest('#player'))return;if(ro&&hrs?.userData.song){const s=hrs.userData.song;window._last=sr;const i=sr.indexOf(s);if(i>=0)playSong(i);hrs2();return}if(!hcd){ro&&hrs2();so&&hsh();return}const a=hcd.userData.action;if(a==='search')document.getElementById('search-input').focus();else if(a==='leaderboard'||a==='recommend'||a==='playlist'){try{const r=await fetch(a==='leaderboard'?'/api/leaderboard':'/api/recommend');const d=await r.json();sr=a==='leaderboard'?d.list:(d.list||[]).map(p=>({name:p.name,singer:p.desc||p.count+'首',source:'wy',id:p.id}));window._last=sr;rrb();srs()}catch(_){}}});
+document.addEventListener('click',async e=>{const t=e.target;if(t.closest('#search-wrap')||t.closest('#settings-btn')||t.closest('#settings-panel')||t.closest('#player')||t.closest('#stack-wrap')||t.closest('.wheel-wrap'))return;});
 
-// ============ 动画循环 ============
 function initAudio(){if(actx)return;actx=new(window.AudioContext||window.webkitAudioContext)();anlz=actx.createAnalyser();anlz.fftSize=256;anlz.connect(actx.destination)}
 let lt=performance.now();
 function anim(){
-  requestAnimationFrame(anim);
-  const now=performance.now();let dt=(now-lt)/1000;lt=now;if(dt>0.1)dt=0.1;
+  requestAnimationFrame(anim);const now=performance.now();let dt=(now-lt)/1000;lt=now;if(dt>0.1)dt=0.1;
   if(isPlay&&anlz){anlz.getByteFrequencyData(fd2);let bs=0,ms=0,ts=0,ce=0;for(let i=0;i<12;i++)bs+=fd2[i];bs/=12*255;for(let i=24;i<64;i++)ms+=fd2[i];ms/=40*255;for(let i=80;i<128;i++)ts+=fd2[i];ts/=48*255;for(let i=0;i<12;i++){const v=fd2[i]/255;ce+=v*v}ce/=12;eh.push(ce);if(eh.length>43)eh.shift();let t=false;if(eh.length&&isPlay){let s=0;for(const v of eh)s+=v;const a=s/eh.length;let v=0;for(const ve of eh)v+=(ve-a)**2;v/=eh.length;if(ce>a*(-0.00257*v+1.514)&&(now/1000-lbt)>0.18){t=true;lbt=now/1000}}sb+=(bs-sb)*(1-Math.exp(-8*dt));sm+=(ms-sm)*(1-Math.exp(-10*dt));stt+=(ts-stt)*(1-Math.exp(-12*dt));bv=t?1:bv*Math.exp(-3.4657*dt);if(bv<0.001)bv=0;idle+=(1-idle)*(1-Math.exp(-3*dt))}else{idle+=(0.3-idle)*(1-Math.exp(-2*dt))}
-  U.uT.value+=dt*0.4;U.uD.value=1.2*idle;
+  U.uT.value+=dt*0.4;U.uD.value=isPlay?1.2*(1.0+sb*0.5+sm*0.3):1.2*idle;
+  P.gu.uT.value=U.uT.value;P.gu.uD.value=U.uD.value;P.gu.uNS.value=U.uNS.value;
   const f=1-Math.exp(-6*dt);cmx+=(mx-cmx)*f;cmy+=(my-cmy)*f;
   P.mp.rotation.x=cmx;P.mp.rotation.y=cmy+U.uT.value*0.03;P.gp.rotation.x=cmx;P.gp.rotation.y=cmy+U.uT.value*0.03;
-  if(sg.visible){const tx=so?sg.scale.x*2+4.5:sg.scale.x*2+8;sg.position.x+=(tx-sg.position.x)*0.06;hc.forEach(c=>{const s=(c.userData.tScale||1)-c.scale.x;c.scale.x+=s*0.1;c.scale.y+=s*0.1;c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!so&&sg.position.x>sg.scale.x*2+7.5)sg.visible=false}
-  if(rg.visible){const tx=ro?-rg.scale.x*2-4.5:-rg.scale.x*2-8;rg.position.x+=(tx-rg.position.x)*0.06;rc.forEach(c=>{const s=(c.userData.tScale||1)-c.scale.x;c.scale.x+=s*0.1;c.scale.y+=s*0.1;c.position.y+=(c.userData.targetY-c.position.y)*0.1;c.children.forEach(ch=>{if(ch.isMesh&&ch.material?.opacity!==undefined)ch.material.opacity+=(c.userData.tOpacity-ch.material.opacity)*0.1})});if(!ro&&rg.position.x<-rg.scale.x*2-7.5)rg.visible=false}
+  P.groundPts.rotation.x=cmx*0.5;P.groundPts.rotation.z=-cmy*0.3;
   cam.position.z+=(zm-cam.position.z)*0.05;rdr.render(sc,cam);
 }
 anim();
-window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rdr.setSize(innerWidth,innerHeight);ul()});
+window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rdr.setSize(innerWidth,innerHeight)});
 
-// ============ 音乐逻辑 ============
-function doSearch(q){fetch(`/api/search?q=${encodeURIComponent(q)}&source=${curSrc}&limit=20`).then(r=>r.json()).then(d=>{if(!d.list?.length){hrs2();return}sr=d.list;window._last=d.list;rrb();srs()}).catch(()=>{})}
-function playSong(idx){const song=window._last?.[idx];if(!song)return;curSong=song;document.getElementById('player-name').textContent=song.name;document.getElementById('player-artist').textContent=song.singer;fetch(`/api/song/url?id=${song.id}&source=${song.source}&quality=128k&name=${encodeURIComponent(song.name)}&singer=${encodeURIComponent(song.singer)}`).then(r=>r.json()).then(async d=>{if(!d.url){toast('暂无可用音源');return}if(audio){audio.pause();audio=null}audio=new Audio(`/api/audio?url=${encodeURIComponent(d.url)}`);audio.crossOrigin='anonymous';audio.addEventListener('timeupdate',()=>{if(!audio?.duration)return;document.getElementById('progress-bar').style.width=(audio.currentTime/audio.duration*100)+'%';const m=Math.floor(audio.currentTime/60);document.getElementById('time-label').textContent=m+':'+String(Math.floor(audio.currentTime%60)).padStart(2,'0')});audio.addEventListener('ended',()=>{document.getElementById('btn-play').textContent='▶';isPlay=false});audio.addEventListener('play',()=>{isPlay=true});audio.addEventListener('pause',()=>{isPlay=false});initAudio();if(actx.state==='suspended')actx.resume();try{const s=actx.createMediaElementSource(audio);s.connect(anlz);s.connect(actx.destination)}catch(_){}await audio.play();document.getElementById('btn-play').textContent='⏸';if(curSong){ph=ph.filter(s=>s.name!==curSong.name||s.singer!==curSong.singer);ph.unshift({name:curSong.name,singer:curSong.singer});if(ph.length>10)ph.length=10;rsb();ssh();clearTimeout(window._st);window._st=setTimeout(()=>{if(isPlay)hsh()},6000)}}).catch(()=>{toast('播放失败')});}
+function doSearch(q){fetch(`/api/search?q=${encodeURIComponent(q)}&source=${curSrc}&limit=20`).then(r=>r.json()).then(d=>{if(!d.list?.length){toast('无搜索结果');return}sr=d.list;window._last=d.list;showSearchResults()}).catch(()=>{})}
+function showSearchResults(){if(!sr.length)return;var wrp=document.querySelector('.wheel-wrap');wrp.style.display='block';var grp=document.getElementById('music-wheel');grp.querySelectorAll('.w-card').forEach(c=>c.remove());sr.slice(0,6).forEach(function(s,i){var el=document.createElement('div');el.className='w-card';var name=s.name||'',singer=s.singer||'';var colors=['#1e3c72,#2a5298','#11998e,#38ef7d','#6A1B9A,#4A00E0','#3E5151,#DECBA4','#ff9966,#ff5e62','#2c3e50,#3498db'];el.innerHTML='<div class=\"w-cover\" style=\"background:linear-gradient(135deg,'+(colors[i%6])+');\">🎵</div><div class=\"w-info\"><div class=\"w-title\">'+name.slice(0,20)+'</div><div class=\"w-sub\">'+singer.slice(0,22)+'</div></div><button class=\"w-btn\" data-idx=\"'+i+'\">播放</button>';el.addEventListener('click',function(e){if(e.target.classList.contains('w-btn'))return;if(wheelIdx!==i){wheelIdx=i;updateWheel()}else playSong(i)});grp.appendChild(el)});grp.querySelectorAll('.w-btn').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(b.dataset.idx);if(!isNaN(idx))playSong(idx)})});updateWheel()}
+
+// ============ 真·3D 滚轮物理引擎 ============
+var wheelIdx=0;
+var radius=280,theta=20;
+function updateWheel(){var grp=document.getElementById('music-wheel');var cards=document.querySelectorAll('#music-wheel .w-card');if(!cards.length)return;cards.forEach(function(card,i){card.style.transform='rotateX('+(i*theta)+'deg) translateZ('+radius+'px)'});grp.style.transform='translateZ('+(-radius)+'px) rotateX('+(-wheelIdx*theta)+'deg)';cards.forEach(function(card,i){var ao=Math.abs(i-wheelIdx);var opacity=ao===0?1:Math.max(0.25,1-ao*.3);var blur=0;card.style.opacity=opacity;card.style.filter='blur('+blur+'px)';if(ao===0)card.classList.add('active');else card.classList.remove('active')});}
+document.querySelector('.wheel-wrap').addEventListener('mousemove',function(e){var cards=document.querySelectorAll('#music-wheel .w-card');if(!cards.length)return;var rect=this.getBoundingClientRect();var ratio=(e.clientY-rect.top)/rect.height;var idx=Math.round(ratio*(cards.length-1));idx=Math.max(0,Math.min(cards.length-1,idx));if(idx!==wheelIdx){wheelIdx=idx;updateWheel()}});
+document.getElementById('search-input').addEventListener('input',e=>{clearTimeout(st2);const q=e.target.value.trim();if(q.length<1)return;st2=setTimeout(()=>doSearch(q),300)});
 function togglePlay(){if(!audio)return;if(audio.paused){audio.play();document.getElementById('btn-play').textContent='⏸'}else{audio.pause();document.getElementById('btn-play').textContent='▶'}}
 function seek(e){if(!audio?.duration)return;audio.currentTime=(e.clientX-e.target.getBoundingClientRect().left)/e.target.offsetWidth*audio.duration}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2500)}
 
-// ============ 视觉控制台 ============
 let fxo=false;
 window.toggleFx=()=>{fxo=!fxo;document.getElementById('fx-panel').classList.toggle('show',fxo)};
 window.onFxChange=()=>{U.uPI.value=parseInt(document.getElementById('fx-palette').value);U.uNS.value=parseFloat(document.getElementById('fx-noise').value);U.uPS.value=parseFloat(document.getElementById('fx-psize').value);localStorage.setItem('fxv4',JSON.stringify({p:U.uPI.value,n:U.uNS.value,s:U.uPS.value}))};
 window.resetFx=()=>{document.getElementById('fx-palette').value=0;document.getElementById('fx-noise').value=0.2;document.getElementById('fx-psize').value=100;onFxChange()};
 try{const fx=JSON.parse(localStorage.getItem('fxv4'));if(fx){document.getElementById('fx-palette').value=fx.p;document.getElementById('fx-noise').value=fx.n;document.getElementById('fx-psize').value=fx.s;onFxChange()}}catch(_){}
 document.addEventListener('click',e=>{if(fxo&&!e.target.closest('#fx-panel')&&!e.target.closest('#fx-fab')){fxo=false;document.getElementById('fx-panel').classList.remove('show')}});
-document.getElementById('search-input').addEventListener('input',e=>{clearTimeout(st2);const q=e.target.value.trim();if(q.length<1){hrs2();return}st2=setTimeout(()=>doSearch(q),300)});
 document.addEventListener('keydown',e=>{if(e.key===' '&&document.activeElement!==document.getElementById('search-input')){e.preventDefault();togglePlay()}});
 
-// ============ 设置 ============
 let so2=false;
 window.toggleSettings=()=>{so2=!so2;document.getElementById('settings-panel').classList.toggle('show',so2)};
 window.importSourceFile=()=>document.getElementById('source-file-input').click();
@@ -320,9 +330,23 @@ window.onFilePicked=e=>{const f=e.target.files[0];if(!f)return;const r=new FileR
 window.applyCustomSource=async()=>{const s=document.getElementById('custom-source-input').value.trim();if(!s)return showSS('请先粘贴或导入脚本');localStorage.setItem('mp-src',s);try{const r=await fetch('/api/custom-source',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({script:s})});const d=await r.json();showSS(d.ok?'✓ 已应用':'✗ '+d.error)}catch(_){showSS('✗ 服务端错误')}};
 window.resetToBuiltin=()=>{localStorage.removeItem('mp-src');document.getElementById('custom-source-input').value='';fetch('/api/custom-source/reset',{method:'POST'}).catch(()=>{});showSS('已恢复内置')};
 function showSS(m){const el=document.getElementById('custom-source-status');el.textContent=m;el.style.display='block';setTimeout(()=>el.style.display='none',3000)}
+function playSong(idx){const song=window._last?.[idx];if(!song)return;curSong=song;document.getElementById('player-name').textContent=song.name;document.getElementById('player-artist').textContent=song.singer;fetch(`/api/song/url?id=${song.id}&source=${song.source}&quality=128k&name=${encodeURIComponent(song.name)}&singer=${encodeURIComponent(song.singer)}`).then(r=>r.json()).then(async d=>{if(!d.url){toast('暂无可用音源');return}if(audio){audio.pause();audio=null}audio=new Audio(`/api/audio?url=${encodeURIComponent(d.url)}`);audio.crossOrigin='anonymous';audio.addEventListener('timeupdate',()=>{if(!audio?.duration)return;document.getElementById('progress-bar').style.width=(audio.currentTime/audio.duration*100)+'%';const m=Math.floor(audio.currentTime/60);document.getElementById('time-label').textContent=m+':'+String(Math.floor(audio.currentTime%60)).padStart(2,'0')});audio.addEventListener('ended',()=>{document.getElementById('btn-play').textContent='▶';isPlay=false});audio.addEventListener('play',()=>{isPlay=true});audio.addEventListener('pause',()=>{isPlay=false});initAudio();if(actx.state==='suspended')actx.resume();try{const s=actx.createMediaElementSource(audio);s.connect(anlz);s.connect(actx.destination)}catch(_){}await audio.play();document.getElementById('btn-play').textContent='⏸';if(curSong){}}).catch(()=>{toast('播放失败')});}
 window.playSong=playSong;window.togglePlay=togglePlay;window.seek=seek;
 document.addEventListener('click',e=>{if(so2&&!e.target.closest('#settings-panel')&&!e.target.closest('#settings-btn')){so2=false;document.getElementById('settings-panel').classList.remove('show')}});
 const saved=localStorage.getItem('mp-src');if(saved)document.getElementById('custom-source-input').value=saved;
+
+// ============ 垂直堆叠卡片流引擎 (动态版) ============
+window._renderStack=(function(){var sysCards=5,activeIdx=2;
+var wrap=document.getElementById('stack-wrap'),vis=true;
+function getCards(){return document.querySelectorAll('#stack-group .s-card')}
+function renderStack(){var cards=getCards(),total=cards.length;cards.forEach(function(card,i){if(card.classList.contains('expanded'))return;var off=i-activeIdx,ao=Math.abs(off);var y=off*85,z=ao===0?0:-ao*60,scale=ao===0?1:1-ao*.05,opacity=ao===0?1:Math.max(0.4,1-ao*.3),zIndex=10-ao;card.style.transform='translate3d(0px,'+y+'px,'+z+'px) scale('+scale+')';card.style.opacity=opacity;card.style.zIndex=zIndex;if(ao===0)card.classList.add('active-card');else card.classList.remove('active-card')});}
+document.getElementById('stack-group').addEventListener('click',function(e){var card=e.target.closest('.s-card');if(!card)return;var cards=getCards(),i=Array.from(cards).indexOf(card);if(i<0)return;e.stopPropagation();if(activeIdx!==i){cards.forEach(function(c){c.classList.remove('expanded')});activeIdx=i;renderStack()}else{card.classList.toggle('expanded');if(!card.classList.contains('expanded'))renderStack()}});
+document.getElementById('stack-wrap').addEventListener('wheel',function(e){if(document.querySelector('.s-card.expanded'))return;var cards=getCards(),total=cards.length;if(e.deltaY>0&&activeIdx<total-1){activeIdx++;renderStack()}else if(e.deltaY<0&&activeIdx>0){activeIdx--;renderStack()}},{passive:true});
+document.addEventListener('contextmenu',function(e){var t=e.target;if(t.closest('.wheel-wrap')||t.closest('#search-wrap')||t.closest('#player'))return;e.preventDefault();vis=!vis;wrap.style.opacity=vis?'1':'0';wrap.style.pointerEvents=vis?'auto':'none'});
+renderStack();
+return renderStack;
+})();
+
 </script>
 </body>
 </html>
